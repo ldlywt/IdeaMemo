@@ -5,7 +5,6 @@ package com.ldlywt.note.ui.page.settings
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +22,6 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material.icons.outlined.TipsAndUpdates
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,8 +68,8 @@ import com.moriafly.salt.ui.SaltTheme
 import com.moriafly.salt.ui.UnstableSaltApi
 import com.moriafly.salt.ui.popup.PopupMenuItem
 import com.moriafly.salt.ui.popup.rememberPopupState
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPage(
     navController: NavHostController
@@ -94,7 +93,7 @@ fun SettingsPage(
 data class SettingsBean(val title: Int, val imageVector: ImageVector, val onClick: () -> Unit)
 
 @SuppressLint("StateFlowValueCalledInComposition")
-@OptIn(ExperimentalLayoutApi::class, UnstableSaltApi::class)
+@OptIn(UnstableSaltApi::class)
 @Composable
 fun SettingsPreferenceScreen(navController: NavHostController) {
     val dataViewModel = hiltViewModel<DataManagerViewModel>()
@@ -104,7 +103,9 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     val biometricAuthState by settingsViewModel.biometricAuthState.collectAsState()
     var showWarnDialog by rememberSaveable { mutableStateOf(false) }
-    val dynamicColor by SettingsPreferences.dynamicColor.collectAsState()
+    val dynamicColor by SettingsPreferences.dynamicColor.collectAsState(false)
+    val themeMode by SettingsPreferences.themeMode.collectAsState(SettingsPreferences.ThemeMode.SYSTEM)
+    val scope = rememberCoroutineScope()
 
     val settingList = listOf(
         SettingsBean(R.string.random_walk, Icons.Outlined.Explore) { navController.navigate(Screen.RandomWalk) },
@@ -130,7 +131,9 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                         ItemSwitcher(
                             state = dynamicColor,
                             onChange = { checked ->
-                                SettingsPreferences.changeDynamicColor(checked)
+                                scope.launch {
+                                    SettingsPreferences.changeDynamicColor(checked)
+                                }
                             },
                             text = stringResource(R.string.dynamic_color_switcher_text),
                             sub = stringResource(R.string.dynamic_color_switcher_sub),
@@ -145,7 +148,7 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                         iconPaddingValues = PaddingValues(all = 1.8.dp),
                         iconColor = SaltTheme.colors.text,
                         text = stringResource(R.string.theme_mode_switcher_text),
-                        selectedItem = SettingsPreferences.themeMode.value.name,
+                        selectedItem = themeMode.name,
                         popupWidth = 140
                     ) {
 
@@ -153,7 +156,7 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                             SettingsPreferences.ThemeMode.entries.map { stringResource(id = it.resId) }
                         var selectedIndex by remember {
                             mutableIntStateOf(
-                                SettingsPreferences.ThemeMode.entries.indexOf(SettingsPreferences.themeMode.value)
+                                SettingsPreferences.ThemeMode.entries.indexOf(themeMode)
                             )
                         }
 
@@ -162,7 +165,9 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                                 onClick = {
                                     selectedIndex = index
                                     val themeMode = SettingsPreferences.ThemeMode.entries[index]
-                                    SettingsPreferences.changeThemeMode(themeMode)
+                                    scope.launch {
+                                        SettingsPreferences.changeThemeMode(themeMode)
+                                    }
                                     themeModePopupMenuState.dismiss()
                                 },
                                 selected = selectedIndex == 0,

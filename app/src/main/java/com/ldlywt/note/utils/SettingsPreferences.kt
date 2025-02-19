@@ -1,42 +1,87 @@
 package com.ldlywt.note.utils
 
+import android.content.Context
+import android.util.Log
 import androidx.annotation.StringRes
-import androidx.core.content.edit
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.ldlywt.note.App
 import com.ldlywt.note.R
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+
+private const val THEME_PREFERENCES = "THEME_PREFERENCES"
+private val Context.themePreferences by preferencesDataStore(name = THEME_PREFERENCES)
+
 
 object SettingsPreferences {
     enum class ThemeMode(@StringRes val resId: Int) {
         LIGHT(R.string.light_mode), DARK(R.string.dark_mode), SYSTEM(R.string.use_device_theme),
     }
 
-    private val preferences = App.instance.preferences
-
-    private val _themeMode = MutableStateFlow(preferences.getEnum(KEY_THEME_MODE, ThemeMode.SYSTEM))
-    val themeMode = _themeMode.asStateFlow()
-
-    private val _dynamicColor = MutableStateFlow(preferences.getBoolean(KEY_DYNAMIC_COLOR, false))
-    val dynamicColor = _dynamicColor.asStateFlow()
-
-
-    fun changeThemeMode(themeMode: ThemeMode) {
-        _themeMode.value = themeMode
-        preferences.edit { putEnum(KEY_THEME_MODE, themeMode) }
+    private object PreferencesKeys {
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
     }
 
 
-    fun changeDynamicColor(dynamicTheme: Boolean) {
-        _dynamicColor.value = dynamicTheme
-        preferences.edit { putBoolean(KEY_DYNAMIC_COLOR, dynamicTheme) }
+    private val themePreferences = App.instance.themePreferences
+
+    val themeMode = themePreferences.getEnum(PreferencesKeys.THEME_MODE, ThemeMode.SYSTEM)
+    val dynamicColor = themePreferences.getBoolean(PreferencesKeys.DYNAMIC_COLOR, false)
+    val firstLaunch = themePreferences.getBoolean(PreferencesKeys.FIRST_LAUNCH, true)
+
+
+    suspend fun changeThemeMode(themeMode: ThemeMode) {
+        Log.d("changeDynamicColor", "changeDynamicColor: ${themeMode.name}")
+        themePreferences.edit { preferences ->
+            preferences[PreferencesKeys.THEME_MODE] = themeMode.name
+        }
+        Log.d("changeDynamicColor", "changeDynamicColor: ${this.themeMode.first().name}")
+
     }
 
-    fun changeFirstLaunch(isFirst : Boolean){
-        preferences.edit { putBoolean(KEY_FIRST_LAUNCH, isFirst) }
+
+    suspend fun changeDynamicColor(dynamicTheme: Boolean) {
+
+        Log.d("changeDynamicColor", "changeDynamicColor: $dynamicTheme")
+        themePreferences.edit { preferences ->
+            preferences[PreferencesKeys.DYNAMIC_COLOR] = dynamicTheme
+        }
+        Log.d("changeDynamicColor", "changeDynamicColor: ${dynamicColor.first()}")
     }
 
-    fun getFirstLaunch():Boolean{
-        return preferences.getBoolean(KEY_FIRST_LAUNCH, true)
+    suspend fun changeFirstLaunch(isFirst: Boolean) {
+        themePreferences.edit { preferences ->
+            preferences[PreferencesKeys.FIRST_LAUNCH] = isFirst
+        }
     }
 }
+
+
+inline fun <reified T : Enum<T>> DataStore<Preferences>.getEnum(key: Preferences.Key<String>, defaultValue: T): Flow<T> {
+    return this.data.map { preferences ->
+        preferences[key]?.let {
+            try {
+                enumValueOf<T>(it)
+            } catch (e: IllegalArgumentException) {
+                defaultValue
+            }
+        } ?: defaultValue
+    }
+}
+
+
+fun DataStore<Preferences>.getBoolean(key: Preferences.Key<Boolean>, defaultValue: Boolean): Flow<Boolean> {
+    return this.data.map { preferences ->
+        preferences[key] ?: defaultValue
+    }
+}
+

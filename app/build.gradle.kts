@@ -100,6 +100,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.foundation.layout.android)
 
+    implementation(libs.androidx.datastore.preferences)
+
     // icons
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.runtime.compose)
