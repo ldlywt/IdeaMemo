@@ -5,6 +5,7 @@ package com.ldlywt.note.ui.page.settings
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import com.ldlywt.note.utils.toYYMMDD
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -289,7 +290,7 @@ fun SettingsHeadLayout() {
             modifier, memos.fastSumBy { it.note.noteTitle?.length ?: (0 + it.note.content.length) }.toString(), R.string.characters.str
         )
         boxText(
-            modifier, memos.count { !it.note.isHide }.toString(), R.string.dyas.str
+             modifier, memos.map { it.note.createTime.toYYMMDD() }.toSet().size.toString(), R.string.dyas.str
         )
 
         boxText(
