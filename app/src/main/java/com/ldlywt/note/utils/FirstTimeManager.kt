@@ -3,6 +3,7 @@ package com.ldlywt.note.utils
 import com.ldlywt.note.App
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.db.repo.TagNoteRepo
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class FirstTimeManager @Inject constructor() {
@@ -11,10 +12,10 @@ class FirstTimeManager @Inject constructor() {
     lateinit var tagNoteRepo: TagNoteRepo
 
     fun generateIntroduceNoteList() {
-        if (!SettingsPreferences.getFirstLaunch()) {
-            return
-        }
         lunchIo {
+            if (!SettingsPreferences.firstLaunch.first()) {
+                return@lunchIo
+            }
             if (App.instance.isSystemLanguageEnglish()) {
                 generateEnglishIntroduceNoteList()
             } else {

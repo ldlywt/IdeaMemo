@@ -51,6 +51,7 @@ import com.ldlywt.note.ui.page.SortTime
 import com.ldlywt.note.ui.page.input.ChatInput
 import com.ldlywt.note.utils.SettingsPreferences
 import com.moriafly.salt.ui.SaltTheme
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun FirstTimeWarmDialog(block: () -> Unit) {
@@ -80,7 +81,7 @@ fun AllNotesPage(
     var showInputDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        showWarnDialog = SettingsPreferences.getFirstLaunch()
+        showWarnDialog = SettingsPreferences.firstLaunch.first()
     }
 
     RYScaffold(
