@@ -54,7 +54,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 
-@OptIn(UnstableSaltApi::class)
 @ExperimentalComposeUiApi
 @Composable
 fun SharePage(noteId: Long, navController: NavHostController) {
@@ -75,22 +74,17 @@ fun SharePage(noteId: Long, navController: NavHostController) {
         IconButton(onClick = {
             screenshotState.capture()
         }, content = {
-            Icon(imageVector = Icons.AutoMirrored.Outlined.Send, contentDescription = R.string.share.str)
+            Icon(imageVector = Icons.AutoMirrored.Outlined.Send, tint = SaltTheme.colors.text, contentDescription = R.string.share.str)
         })
     }) {
         Column {
             ScreenshotBox(screenshotState = screenshotState) {
                 noteShowBean.value?.let {
-                    Column(
-                        modifier = Modifier
-                            .background(Color.White)
-
-                    ) {
+                    Column {
                         Spacer(modifier = Modifier.height(40.dp))
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
+                            colors = CardDefaults.cardColors(containerColor = SaltTheme.colors.popup),
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         ) {
                             Column(
                                 modifier = Modifier
@@ -98,14 +92,6 @@ fun SharePage(noteId: Long, navController: NavHostController) {
                                     .padding(12.dp)
                             ) {
                                 val note = it.note
-//                                if (!note.noteTitle.isNullOrEmpty()) {
-//                                    Text(
-//                                        text = note.noteTitle ?: "",
-//                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-//                                        color = MaterialTheme.colorScheme.primary,
-//                                    )
-//                                    Spacer(modifier = Modifier.height(4.dp))
-//                                }
                                 MarkdownText(markdown = note.content, style = SaltTheme.textStyles.paragraph.copy(fontSize = 15.sp, lineHeight = 24.sp)){}
                                 if (note.attachments.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
