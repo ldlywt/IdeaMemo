@@ -181,6 +181,7 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                     ItemSwitcher(
                         state = biometricAuthState,
                         iconPainter = rememberVectorPainter(Icons.Outlined.Fingerprint),
+                        iconColor = SaltTheme.colors.text,
                         onChange = {
                             settingsViewModel.showBiometricPrompt(context as MainActivity)
                         },
