@@ -1,7 +1,6 @@
 package com.ldlywt.note.utils
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -11,10 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ldlywt.note.App
 import com.ldlywt.note.R
-import com.ldlywt.note.preferences
-
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private const val THEME_PREFERENCES = "THEME_PREFERENCES"
