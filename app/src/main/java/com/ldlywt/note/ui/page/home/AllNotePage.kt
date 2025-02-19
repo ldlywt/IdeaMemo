@@ -127,12 +127,12 @@ fun AllNotesPage(
         })
 
     if (showWarnDialog) {
-        FirstTimeWarmDialog(block = {
+        FirstTimeWarmDialog {
             lunchMain {
                 SettingsPreferences.changeFirstLaunch(false)
                 showWarnDialog = false
             }
-        })
+        }
     }
 
 
@@ -185,7 +185,7 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
     var sortTime by rememberSaveable { mutableStateOf(preferences.sortTime) }
 
     if (show) {
-        ModalBottomSheet(onDismissRequest = onDismissRequest, containerColor = SaltTheme.colors.subBackground) {
+        ModalBottomSheet(onDismissRequest = onDismissRequest) {
             Column(Modifier.fillMaxWidth()) {
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
                     sortTime = SortTime.UPDATE_TIME_DESC.name
@@ -198,7 +198,7 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                             .fillMaxWidth()
                             .padding(start = 24.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = stringResource(R.string.update_time_desc), color = SaltTheme.colors.text)
+                        Text(text = stringResource(R.string.update_time_desc))
                         Spacer(modifier = Modifier.weight(1f))
                         Checkbox(checked = sortTime == SortTime.UPDATE_TIME_DESC.name, null)
                     }
@@ -214,7 +214,7 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                             .fillMaxWidth()
                             .padding(start = 24.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = stringResource(R.string.update_time_asc), color = SaltTheme.colors.text)
+                        Text(text = stringResource(R.string.update_time_asc))
                         Spacer(modifier = Modifier.weight(1f))
                         Checkbox(checked = sortTime == SortTime.UPDATE_TIME_ASC.name, null)
                     }
@@ -230,7 +230,7 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                             .fillMaxWidth()
                             .padding(start = 24.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = stringResource(R.string.create_time_desc), color = SaltTheme.colors.text)
+                        Text(text = stringResource(R.string.create_time_desc))
                         Spacer(modifier = Modifier.weight(1f))
                         Checkbox(checked = sortTime == SortTime.CREATE_TIME_DESC.name, null)
                     }
@@ -246,7 +246,7 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                             .fillMaxWidth()
                             .padding(start = 24.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = stringResource(R.string.create_time_asc), color = SaltTheme.colors.text)
+                        Text(text = stringResource(R.string.create_time_asc))
                         Spacer(modifier = Modifier.weight(1f))
                         Checkbox(checked = sortTime == SortTime.CREATE_TIME_ASC.name, null)
                     }
