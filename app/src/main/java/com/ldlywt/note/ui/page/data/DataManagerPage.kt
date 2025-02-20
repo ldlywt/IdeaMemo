@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,9 +52,7 @@ import com.ldlywt.note.backup.model.DavData
 import com.ldlywt.note.component.ConfirmDialog
 import com.ldlywt.note.component.LoadingComponent
 import com.ldlywt.note.component.RYDialog
-import com.ldlywt.note.utils.lunchIo
-import com.ldlywt.note.utils.lunchMain
-import com.ldlywt.note.preferences
+import com.ldlywt.note.ui.page.LocalMemosState
 import com.ldlywt.note.ui.page.router.Screen
 import com.ldlywt.note.ui.page.settings.SettingsBean
 import com.ldlywt.note.utils.BackUp
@@ -61,10 +60,12 @@ import com.ldlywt.note.utils.ChoseFolderContract
 import com.ldlywt.note.utils.ExportNotesJsonContract
 import com.ldlywt.note.utils.ExportTextContract
 import com.ldlywt.note.utils.RestoreNotesContract
+import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.backUpFileName
+import com.ldlywt.note.utils.lunchIo
+import com.ldlywt.note.utils.lunchMain
 import com.ldlywt.note.utils.str
 import com.ldlywt.note.utils.toast
-import com.ldlywt.note.ui.page.LocalMemosState
 import com.moriafly.salt.ui.Item
 import com.moriafly.salt.ui.ItemEdit
 import com.moriafly.salt.ui.ItemEditPassword
@@ -85,7 +86,7 @@ import java.io.File
 @OptIn(UnstableSaltApi::class)
 @Composable
 fun DataManagerPage(
-    navController: NavHostController, viewMode: DataManagerViewModel = hiltViewModel()
+    navController: NavHostController, viewModel: DataManagerViewModel = hiltViewModel()
 ) {
     val noteState = LocalMemosState.current
     val scope = rememberCoroutineScope()
@@ -97,34 +98,35 @@ fun DataManagerPage(
     val context = LocalContext.current as AppCompatActivity
     val snackbarState = remember { SnackbarHostState() }
     var webInputDialog: Boolean by remember { mutableStateOf(false) }
-    val autoBackSwitchState = remember { mutableStateOf(preferences.localAutoBackup) }
-    var jianGuoCloudSwitchState: Boolean by remember { mutableStateOf(preferences.davLoginSuccess) }
+    val autoBackSwitchState = SharedPreferencesUtils.localAutoBackup.collectAsState(false)
+    val jianGuoCloudSwitchState = SharedPreferencesUtils.davLoginSuccess.collectAsState(false)
+    val isLogin =viewModel.isLogin
 
     fun navToWebdavConfigPage() {
         navController.navigate(Screen.DataCloudConfig)
     }
 
     fun exportToWebdav() {
-        if (!viewMode.isLogin()) {
+        if (isLogin) {
             navToWebdavConfigPage()
             return
         }
         lunchMain {
             isLoading = true
-            val resultStr = viewMode.exportToWebdav(context)
+            val resultStr = viewModel.exportToWebdav(context)
             isLoading = false
             snackbarState.showSnackbar(resultStr)
         }
     }
 
     fun restoreForWebdav() {
-        if (!viewMode.isLogin()) {
+        if (isLogin) {
             navToWebdavConfigPage()
             return
         }
         lunchMain {
             isLoading = true
-            val list: List<DavData> = viewMode.restoreForWebdav()
+            val list: List<DavData> = viewModel.restoreForWebdav()
             webDavList.clear()
             webDavList.addAll(list)
             isLoading = false
@@ -134,8 +136,10 @@ fun DataManagerPage(
 
     val choseFolderLauncher = rememberLauncherForActivityResult(ChoseFolderContract) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        preferences.localBackupUri = uri.toString()
-        autoBackSwitchState.value = true
+        scope.launch {
+            SharedPreferencesUtils.updateLocalBackUri(uri.toString())
+            SharedPreferencesUtils.updateLocalAutoBackup(true)
+        }
     }
 
     val exportTxtLauncher = rememberLauncherForActivityResult(ExportTextContract) { uri ->
@@ -242,17 +246,20 @@ fun DataManagerPage(
                     iconPainter = rememberVectorPainter(it.imageVector),
                 )
             }
+            val localBackUri = SharedPreferencesUtils.localBackupUri.collectAsState("")
             ItemSwitcher(
                 state = autoBackSwitchState.value,
                 onChange = {
-                    if (preferences.localBackupUri.isNullOrEmpty()) {
+                    if (localBackUri.value.isNullOrEmpty()) {
                         showChoseFolderDialog = true
                     } else {
                         val isChecked = autoBackSwitchState.value
                         if (isChecked) {
-                            preferences.localAutoBackup = false
-                            preferences.localBackupUri = null
-                            autoBackSwitchState.value = false
+                            scope.launch {
+                                SharedPreferencesUtils.updateLocalAutoBackup(false)
+                                SharedPreferencesUtils.updateLocalBackUri(null)
+                            }
+
                         }
                     }
                 },
@@ -268,7 +275,9 @@ fun DataManagerPage(
                 },
                 onConfirm = {
                     webInputDialog = false
-                    jianGuoCloudSwitchState = true
+                    scope.launch {
+                        SharedPreferencesUtils.updateDavLoginSuccess(true)
+                    }
                 },
             )
         }
@@ -276,18 +285,18 @@ fun DataManagerPage(
         RoundedColumn {
             ItemSwitcher(
                 text = R.string.webdav_auth.str,
-                state = jianGuoCloudSwitchState,
+                state = jianGuoCloudSwitchState.value,
                 onChange = {
-                    if (jianGuoCloudSwitchState) {
-                        preferences.clearDavConfig()
-                        jianGuoCloudSwitchState = false
-                    } else {
-                        jianGuoCloudSwitchState = false
-                        webInputDialog = true
-                    }
+                    if(jianGuoCloudSwitchState.value) {
+                        scope.launch {
+                            SharedPreferencesUtils.clearDavConfig()
+                        }
+                    }else {
+                            webInputDialog = true
+                        }
                 }
             )
-            if (jianGuoCloudSwitchState) {
+            if (jianGuoCloudSwitchState.value) {
                 Item(text = R.string.webdav_backup.str, onClick = {
                     exportToWebdav()
                 })
@@ -326,7 +335,7 @@ fun DataManagerPage(
         lunchMain {
             openBottomSheet = false
             isLoading = true
-            val resultPath = viewMode.downloadFileByPath(davData)
+            val resultPath = viewModel.downloadFileByPath(davData)
             if (!resultPath.isNullOrEmpty()) {
                 val uri = FileProvider.getUriForFile(context, "com.ldlywt.note.provider", File(resultPath))
                 BackUp.restoreFromEncryptedZip(App.instance, uri)
@@ -338,9 +347,9 @@ fun DataManagerPage(
     LoadingComponent(isLoading)
     ConfirmDialog(isShowRestartDialog, title = R.string.restart.str, content = R.string.app_restored.str,
         onDismissRequest = {
-            isShowRestartDialog = false
+            isShowRestartDialog=false
         }, onConfirmRequest = {
-            isShowRestartDialog = false
+            isShowRestartDialog=false
             val packageManager = context.packageManager
             val intent = packageManager.getLaunchIntentForPackage(context.packageName)
             val componentName = intent!!.component
@@ -348,9 +357,9 @@ fun DataManagerPage(
             context.startActivity(mainIntent)
             Runtime.getRuntime().exit(0)
         })
+
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChoseFolderDialog(visible: Boolean, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
     RYDialog(
@@ -411,6 +420,7 @@ fun AccountInputDialog(
     properties: DialogProperties = DialogProperties(),
 ) {
 
+    val scope = rememberCoroutineScope()
     BasicDialog(
         onDismissRequest = onDismissRequest,
         properties = properties
@@ -421,31 +431,37 @@ fun AccountInputDialog(
 
         ItemTitle(text = R.string.webdav_config.str)
 
-        var serverUrl by rememberSaveable { mutableStateOf(preferences.davServerUrl) }
-        var username by rememberSaveable { mutableStateOf(preferences.davUserName) }
-        var password by rememberSaveable { mutableStateOf(preferences.davPassword) }
+        val serverUrl = SharedPreferencesUtils.davServerUrl.collectAsState("")
+        val username =SharedPreferencesUtils.davUserName.collectAsState(null)
+        val password =SharedPreferencesUtils.davPassword.collectAsState(null)
         val dataManagerViewMode: DataManagerViewModel = hiltViewModel()
 //        val focusRequester = remember { FocusRequester() }
         ItemEdit(
-            text = serverUrl ?: "",
+            text = serverUrl.value?:"",
             onChange = {
-                serverUrl = it
+                scope.launch {
+                   SharedPreferencesUtils.updateDavServerUrl(it)
+                }
             },
             hint = stringResource(R.string.server_url)
         )
 
         ItemEdit(
-            text = username ?: "",
+            text = username.value?:"" ,
             onChange = {
-                username = it
+                scope.launch {
+                    SharedPreferencesUtils.updateDavUserName(it)
+                }
             },
             hint = R.string.username.str
         )
 
         ItemEditPassword(
-            text = password ?: "",
+            text = password.value ?: "",
             onChange = {
-                password = it
+                scope.launch {
+                    SharedPreferencesUtils.updateDavPassword(it)
+                }
             },
             hint = R.string.password.str
         )
@@ -470,13 +486,16 @@ fun AccountInputDialog(
             com.moriafly.salt.ui.TextButton(
                 onClick = {
                     lunchIo {
-                        val pair = dataManagerViewMode.checkConnection(serverUrl!!, username!!, password!!)
+                        val pair = dataManagerViewMode.checkConnection(serverUrl.value!!, username.value!!, password.value!!)
                         withContext(Dispatchers.Main) {
                             toast(pair.second)
-                            preferences.davLoginSuccess = pair.first
-                            if (pair.first) {
-                                onConfirm()
+                            scope.launch {
+                                SharedPreferencesUtils.updateDavLoginSuccess(pair.first)
+                                if (pair.first) {
+                                    onConfirm()
+                                }
                             }
+
                         }
                     }
                 },

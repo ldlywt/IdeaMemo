@@ -11,7 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.LocalCafe
@@ -83,7 +83,7 @@ fun MoreInfoPage(
         SettingsBean(R.string.donate_app, Icons.Outlined.LocalCafe) { DonateUtils.openALiPay(context) },
     )
     val aboutList = listOf(
-        SettingsBean(R.string.user_agree, Icons.Outlined.Assignment) {
+        SettingsBean(R.string.user_agree, Icons.AutoMirrored.Outlined.Assignment) {
             Constant.startUserAgreeUrl(context)
         },
         SettingsBean(R.string.privacy_policy, Icons.Outlined.PrivacyTip) {

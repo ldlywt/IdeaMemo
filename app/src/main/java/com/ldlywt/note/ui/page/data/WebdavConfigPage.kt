@@ -17,11 +17,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -32,19 +30,21 @@ import androidx.navigation.NavHostController
 import com.ldlywt.note.R
 import com.ldlywt.note.component.RYOutlineTextField
 import com.ldlywt.note.component.RYScaffold
-import com.ldlywt.note.preferences
+import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.str
+import kotlinx.coroutines.launch
 
 @Composable
 fun DataCloudConfigPage(
     navController: NavHostController
 ) {
-    var serverUrl by rememberSaveable { mutableStateOf(preferences.davServerUrl) }
-    var username by rememberSaveable { mutableStateOf(preferences.davUserName) }
-    var password by rememberSaveable { mutableStateOf(preferences.davPassword) }
+    val serverUrl = SharedPreferencesUtils.davServerUrl.collectAsState("")
+    val username = SharedPreferencesUtils.davUserName.collectAsState(null)
+    val password = SharedPreferencesUtils.davPassword.collectAsState(null)
     val snackbarState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
     val dataManagerViewMode: DataManagerViewModel = hiltViewModel()
+    val scope = rememberCoroutineScope()
 
     RYScaffold(
         title = R.string.cloud_data_manager.str,
@@ -57,8 +57,12 @@ fun DataCloudConfigPage(
                 .padding(start = 24.dp, end = 24.dp),
         ) {
             RYOutlineTextField(
-                value = serverUrl,
-                onValueChange = { serverUrl = it },
+                value = serverUrl.value,
+                onValueChange = {
+                    scope.launch {
+                        SharedPreferencesUtils.updateDavServerUrl(it)
+                    }
+                },
                 label = stringResource(R.string.server_url),
                 placeholder = "https://dav.jianguoyun.com/dav/",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -71,8 +75,12 @@ fun DataCloudConfigPage(
             )
             Spacer(modifier = Modifier.height(16.dp))
             RYOutlineTextField(
-                value = username,
-                onValueChange = { username = it },
+                value = username.value,
+                onValueChange = {
+                    scope.launch {
+                        SharedPreferencesUtils.updateDavUserName(it)
+                    }
+                },
                 label = stringResource(R.string.username),
                 placeholder = stringResource(R.string.username),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -85,8 +93,12 @@ fun DataCloudConfigPage(
             )
             Spacer(modifier = Modifier.height(16.dp))
             RYOutlineTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = password.value,
+                onValueChange = {
+                    scope.launch {
+                        SharedPreferencesUtils.updateDavPassword(it)
+                    }
+                },
                 isPassword = true,
                 label = stringResource(R.string.password),
                 placeholder = stringResource(R.string.password),
@@ -102,11 +114,9 @@ fun DataCloudConfigPage(
             Button(modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
-                enabled = !serverUrl.isNullOrBlank() && !username.isNullOrBlank() && !password.isNullOrBlank(),
+                enabled = !serverUrl.value.isNullOrBlank() && !username.value.isNullOrBlank() && !password.value.isNullOrBlank(),
                 onClick = {
                     focusManager.clearFocus()
-
-
                 }
             ) {
                 Text(stringResource(R.string.submit))

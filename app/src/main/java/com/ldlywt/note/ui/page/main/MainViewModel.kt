@@ -4,12 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ldlywt.note.biometric.AppBioMetricManager
 import com.ldlywt.note.biometric.BiometricAuthListener
-import com.ldlywt.note.preferences
+import com.ldlywt.note.utils.SharedPreferencesUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,7 +31,7 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            if (preferences.useSafe && appBioMetricManager.canAuthenticate()) {
+            if (SharedPreferencesUtils.useSafe.first() && appBioMetricManager.canAuthenticate()) {
                 _initAuth.emit(true)
             } else {
                 _loading.emit(false)

@@ -8,16 +8,18 @@ import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.bean.Tag
 import com.ldlywt.note.db.repo.TagNoteRepo
-import com.ldlywt.note.preferences
 import com.ldlywt.note.state.NoteState
 import com.ldlywt.note.ui.page.settings.Level
+import com.ldlywt.note.utils.SharedPreferencesUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,10 +37,11 @@ enum class SortTime {
 @HiltViewModel
 class NoteViewModel @Inject constructor(private val tagNoteRepo: TagNoteRepo) : ViewModel() {
 
-    val sortTime = MutableStateFlow(preferences.sortTime ?: SortTime.UPDATE_TIME_DESC.name)
+    val sortTime = SharedPreferencesUtils.sortTime
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val _notes: StateFlow<List<NoteShowBean>> = sortTime.flatMapLatest { newSortTime ->
-        tagNoteRepo.queryAllMemosFlow(newSortTime)
+        tagNoteRepo.queryAllMemosFlow(newSortTime.name)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(),
@@ -71,11 +74,11 @@ class NoteViewModel @Inject constructor(private val tagNoteRepo: TagNoteRepo) : 
         private set
 
     private suspend fun getLocalDateMap(notes: List<NoteShowBean>) = withContext(Dispatchers.IO) {
-        val sortTime = preferences.sortTime ?: SortTime.UPDATE_TIME_DESC.name
+        val sortTime = SharedPreferencesUtils.sortTime.first()
         val map: MutableMap<LocalDate, Int> = mutableMapOf()
         notes.forEach {
             val showTime =
-                if (sortTime == SortTime.UPDATE_TIME_DESC.name || sortTime == SortTime.UPDATE_TIME_ASC.name) it.note.updateTime else it.note.createTime
+                if (sortTime == SortTime.UPDATE_TIME_DESC || sortTime == SortTime.UPDATE_TIME_ASC) it.note.updateTime else it.note.createTime
             val localDate = Instant.ofEpochMilli(showTime).atZone(ZoneId.systemDefault()).toLocalDate()
             map[localDate] = map.getOrElse(localDate) { 0 } + 1
         }

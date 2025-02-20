@@ -25,8 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,7 +39,7 @@ import androidx.navigation.NavHostController
 import com.ldlywt.note.R
 import com.ldlywt.note.component.NoteCard
 import com.ldlywt.note.component.RYScaffold
-import com.ldlywt.note.preferences
+
 import com.ldlywt.note.state.NoteState
 import com.ldlywt.note.ui.page.LocalMemosState
 import com.ldlywt.note.ui.page.LocalMemosViewModel
@@ -47,10 +49,12 @@ import com.ldlywt.note.ui.page.input.ChatInput
 import com.ldlywt.note.ui.page.router.Screen
 import com.ldlywt.note.utils.FirstTimeWarmDialog
 import com.ldlywt.note.utils.SettingsPreferences
+import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.lunchMain
 import com.ldlywt.note.utils.str
 import com.moriafly.salt.ui.SaltTheme
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Composable
 fun AllNotesPage(
@@ -182,15 +186,16 @@ private fun toolbar(navController: NavHostController, filterBlock: () -> Unit) {
 fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
 
     val viewModel: NoteViewModel = LocalMemosViewModel.current
-    var sortTime by rememberSaveable { mutableStateOf(preferences.sortTime) }
+    val sortTime = SharedPreferencesUtils.sortTime.collectAsState(SortTime.UPDATE_TIME_DESC)
+    val scope = rememberCoroutineScope()
 
     if (show) {
         ModalBottomSheet(onDismissRequest = onDismissRequest) {
             Column(Modifier.fillMaxWidth()) {
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                    sortTime = SortTime.UPDATE_TIME_DESC.name
-                    preferences.sortTime = SortTime.UPDATE_TIME_DESC.name
-                    viewModel.sortTime.value = SortTime.UPDATE_TIME_DESC.name
+                    scope.launch {
+                        SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_DESC)
+                    }
                     onConfirmRequest()
                 }) {
                     Row(
@@ -200,14 +205,15 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                     ) {
                         Text(text = stringResource(R.string.update_time_desc))
                         Spacer(modifier = Modifier.weight(1f))
-                        Checkbox(checked = sortTime == SortTime.UPDATE_TIME_DESC.name, null)
+                        Checkbox(checked = sortTime.value == SortTime.UPDATE_TIME_DESC, null)
                     }
                 }
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                    sortTime = SortTime.UPDATE_TIME_ASC.name
-                    preferences.sortTime = SortTime.UPDATE_TIME_ASC.name
-                    viewModel.sortTime.value = SortTime.UPDATE_TIME_ASC.name
-                    onConfirmRequest()
+                    scope.launch {
+                        SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_ASC)
+                        onConfirmRequest()
+                    }
+
                 }) {
                     Row(
                         Modifier
@@ -216,14 +222,14 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                     ) {
                         Text(text = stringResource(R.string.update_time_asc))
                         Spacer(modifier = Modifier.weight(1f))
-                        Checkbox(checked = sortTime == SortTime.UPDATE_TIME_ASC.name, null)
+                        Checkbox(checked = sortTime.value == SortTime.UPDATE_TIME_ASC, null)
                     }
                 }
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
-                    sortTime = SortTime.CREATE_TIME_DESC.name
-                    preferences.sortTime = SortTime.CREATE_TIME_DESC.name
-                    viewModel.sortTime.value = SortTime.CREATE_TIME_DESC.name
-                    onConfirmRequest()
+                    scope.launch {
+                        SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_ASC)
+                        onConfirmRequest()
+                    }
                 }) {
                     Row(
                         Modifier
@@ -232,14 +238,14 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                     ) {
                         Text(text = stringResource(R.string.create_time_desc))
                         Spacer(modifier = Modifier.weight(1f))
-                        Checkbox(checked = sortTime == SortTime.CREATE_TIME_DESC.name, null)
+                        Checkbox(checked = sortTime.value == SortTime.CREATE_TIME_DESC, null)
                     }
                 }
                 TextButton(onClick = {
-                    sortTime = SortTime.CREATE_TIME_ASC.name
-                    preferences.sortTime = SortTime.CREATE_TIME_ASC.name
-                    viewModel.sortTime.value = SortTime.CREATE_TIME_ASC.name
-                    onConfirmRequest()
+                    scope.launch {
+                        SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_ASC)
+                        onConfirmRequest()
+                    }
                 }) {
                     Row(
                         Modifier
@@ -248,7 +254,7 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                     ) {
                         Text(text = stringResource(R.string.create_time_asc))
                         Spacer(modifier = Modifier.weight(1f))
-                        Checkbox(checked = sortTime == SortTime.CREATE_TIME_ASC.name, null)
+                        Checkbox(checked = sortTime.value == SortTime.CREATE_TIME_ASC, null)
                     }
                 }
                 Spacer(modifier = Modifier.height(40.dp))

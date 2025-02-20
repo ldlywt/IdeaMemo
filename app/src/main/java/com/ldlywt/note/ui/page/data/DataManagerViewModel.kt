@@ -4,16 +4,17 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import com.ldlywt.note.App
 import com.ldlywt.note.backup.SyncManager
 import com.ldlywt.note.backup.model.DavData
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.db.repo.TagNoteRepo
 import com.ldlywt.note.getAppName
-import com.ldlywt.note.utils.withIO
-import com.ldlywt.note.preferences
 import com.ldlywt.note.utils.BackUp
+import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.backUpFileName
+import com.ldlywt.note.utils.withIO
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,10 +34,13 @@ class DataManagerViewModel @Inject constructor(private val tagNoteRepo: TagNoteR
         syncManager.downloadFileByPath(davData.path.substringAfterLast("/dav/"), App.instance.cacheDir.absolutePath)
     }
 
-    fun isLogin(): Boolean = preferences.davLoginSuccess
+
+    val isLogin = SharedPreferencesUtils.davLoginSuccess.asLiveData().value?:false
+
+
 
     suspend fun exportToWebdav(context: Context): String = withIO {
-        val (filename, file, uri) = generateZipFile(context, backUpFileName)
+        val (filename, file, _) = generateZipFile(context, backUpFileName)
         val resultStr = syncManager.uploadFile(filename, getAppName(), file)
         if (resultStr.startsWith("Success")) {
             File(filename).delete()

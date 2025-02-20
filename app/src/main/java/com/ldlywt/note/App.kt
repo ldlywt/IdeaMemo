@@ -1,6 +1,7 @@
 package com.ldlywt.note
 
 import android.app.Application
+import androidx.lifecycle.asLiveData
 import com.ldlywt.note.backup.BackupScheduler
 import com.ldlywt.note.utils.SharedPreferencesUtils
 import dagger.hilt.android.HiltAndroidApp
@@ -9,7 +10,6 @@ fun getAppName(): String {
     return "IdeaMemo"
 }
 
-val preferences by lazy { SharedPreferencesUtils(App.instance) }
 
 @HiltAndroidApp
 class App : Application() {
@@ -17,7 +17,8 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        if (preferences.localAutoBackup) {
+        val localAutoBackup=SharedPreferencesUtils.localAutoBackup.asLiveData().value
+        if (localAutoBackup == true) {
             BackupScheduler.scheduleDailyBackup(this)
         } else {
             BackupScheduler.cancelDailyBackup(this)

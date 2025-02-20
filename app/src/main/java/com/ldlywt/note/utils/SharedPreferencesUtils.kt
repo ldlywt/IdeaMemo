@@ -1,98 +1,96 @@
 package com.ldlywt.note.utils
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.preference.PreferenceManager
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.ldlywt.note.App
 import com.ldlywt.note.ui.page.SortTime
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
+import kotlinx.coroutines.flow.Flow
 
-open class SharedPreferencesUtils(context: Context) {
+private const val SHARED_PREFERENCES_STORE_NAME = "SHARED_PREFERENCES"
+private val Context.sharedDataStore by preferencesDataStore(name = SHARED_PREFERENCES_STORE_NAME)
 
-    private val preferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+object SharedPreferencesUtils {
+    private object PreferencesKeys {
+        val SORT_TIME = stringPreferencesKey("sort_time")
+        val USE_SAFE = booleanPreferencesKey("use_safe")
+        val LOCAL_AUTO_BACKUP = booleanPreferencesKey("local_auto_backup")
+        val LOCAL_BACKUP_URI = stringPreferencesKey("local_backup_uri")
+        val DAV_LOGIN_SUCCESS = booleanPreferencesKey("dav_login_success")
+        val DAV_SERVER_URL = stringPreferencesKey("dav_server_url")
+        val DAV_USER_NAME = stringPreferencesKey("dav_user_name")
+        val DAV_PASSWORD = stringPreferencesKey("dav_password")
+    }
 
-    var sortTime by SharedPreferenceDelegates.string(defaultValue = SortTime.UPDATE_TIME_DESC.name)
-    var useSafe by SharedPreferenceDelegates.boolean(false)
-    var localAutoBackup by SharedPreferenceDelegates.boolean(false)
+    private val sharedPreferences = App.instance.sharedDataStore
+
+
+    val sortTime: Flow<SortTime> = sharedPreferences.getEnum(PreferencesKeys.SORT_TIME, SortTime.UPDATE_TIME_DESC)
+    val useSafe: Flow<Boolean> = sharedPreferences.getBoolean(PreferencesKeys.USE_SAFE, false)
+
+
+    val localAutoBackup: Flow<Boolean> = sharedPreferences.getBoolean(PreferencesKeys.LOCAL_AUTO_BACKUP, false)
 
     // content://com.android.externalstorage.documents/tree/primary%3ADocuments
-    var localBackupUri by SharedPreferenceDelegates.string(null)
+    val localBackupUri: Flow<String?> = sharedPreferences.getString(PreferencesKeys.LOCAL_BACKUP_URI, null)
+    val davLoginSuccess: Flow<Boolean>  = sharedPreferences.getBoolean(PreferencesKeys.DAV_LOGIN_SUCCESS, false)
+    val davServerUrl: Flow<String?> = sharedPreferences.getString(PreferencesKeys.DAV_SERVER_URL, "https://dav.jianguoyun.com/dav/")
+    val davUserName: Flow<String?> = sharedPreferences.getString(PreferencesKeys.DAV_USER_NAME, null)
+    val davPassword: Flow<String?> = sharedPreferences.getString(PreferencesKeys.DAV_PASSWORD, null)
 
-    var davLoginSuccess by SharedPreferenceDelegates.boolean(false)
-    var davServerUrl by SharedPreferenceDelegates.string("https://dav.jianguoyun.com/dav/")
-    var davUserName by SharedPreferenceDelegates.string()
-    var davPassword by SharedPreferenceDelegates.string()
 
-    fun clearDavConfig() {
-        davLoginSuccess = false
-        davServerUrl = null
-        davUserName = null
-        davPassword = null
+
+    suspend fun clearDavConfig() {
+        sharedPreferences.edit { preferences ->
+            preferences[PreferencesKeys.DAV_LOGIN_SUCCESS] = false
+            preferences.remove(PreferencesKeys.DAV_SERVER_URL)
+            preferences.remove(PreferencesKeys.DAV_USER_NAME)
+            preferences.remove(PreferencesKeys.DAV_PASSWORD)
+
+        }
     }
 
-    private object SharedPreferenceDelegates {
-
-        fun int(defaultValue: Int = 0) = object : ReadWriteProperty<SharedPreferencesUtils, Int> {
-
-            override fun getValue(thisRef: SharedPreferencesUtils, property: KProperty<*>): Int {
-                return thisRef.preferences.getInt(property.name, defaultValue)
-            }
-
-            override fun setValue(thisRef: SharedPreferencesUtils, property: KProperty<*>, value: Int) {
-                thisRef.preferences.edit().putInt(property.name, value).apply()
+    private suspend fun <T> updatePreference(key: Preferences.Key<T>, value: T?) {
+        sharedPreferences.edit { preferences ->
+            if(value!=null) {
+                preferences[key] = value
+            }else{
+                preferences.remove(key)
             }
         }
-
-        fun long(defaultValue: Long = 0L) = object : ReadWriteProperty<SharedPreferencesUtils, Long> {
-
-            override fun getValue(thisRef: SharedPreferencesUtils, property: KProperty<*>): Long {
-                return thisRef.preferences.getLong(property.name, defaultValue)
-            }
-
-            override fun setValue(thisRef: SharedPreferencesUtils, property: KProperty<*>, value: Long) {
-                thisRef.preferences.edit().putLong(property.name, value).apply()
-            }
-        }
-
-        fun boolean(defaultValue: Boolean = false) = object : ReadWriteProperty<SharedPreferencesUtils, Boolean> {
-            override fun getValue(thisRef: SharedPreferencesUtils, property: KProperty<*>): Boolean {
-                return thisRef.preferences.getBoolean(property.name, defaultValue)
-            }
-
-            override fun setValue(thisRef: SharedPreferencesUtils, property: KProperty<*>, value: Boolean) {
-                thisRef.preferences.edit().putBoolean(property.name, value).apply()
-            }
-        }
-
-        fun float(defaultValue: Float = 0.0f) = object : ReadWriteProperty<SharedPreferencesUtils, Float> {
-            override fun getValue(thisRef: SharedPreferencesUtils, property: KProperty<*>): Float {
-                return thisRef.preferences.getFloat(property.name, defaultValue)
-            }
-
-            override fun setValue(thisRef: SharedPreferencesUtils, property: KProperty<*>, value: Float) {
-                thisRef.preferences.edit().putFloat(property.name, value).apply()
-            }
-        }
-
-        fun string(defaultValue: String? = null) = object : ReadWriteProperty<SharedPreferencesUtils, String?> {
-            override fun getValue(thisRef: SharedPreferencesUtils, property: KProperty<*>): String? {
-                return thisRef.preferences.getString(property.name, defaultValue)
-            }
-
-            override fun setValue(thisRef: SharedPreferencesUtils, property: KProperty<*>, value: String?) {
-                thisRef.preferences.edit().putString(property.name, value).apply()
-            }
-        }
-
-        fun setString(defaultValue: Set<String>? = null) =
-            object : ReadWriteProperty<SharedPreferencesUtils, Set<String>?> {
-                override fun getValue(thisRef: SharedPreferencesUtils, property: KProperty<*>): Set<String>? {
-                    return thisRef.preferences.getStringSet(property.name, defaultValue)
-                }
-
-                override fun setValue(thisRef: SharedPreferencesUtils, property: KProperty<*>, value: Set<String>?) {
-                    thisRef.preferences.edit().putStringSet(property.name, value).apply()
-                }
-            }
     }
+
+    suspend fun updateLocalBackUri(uri: String?){
+        updatePreference(PreferencesKeys.LOCAL_BACKUP_URI,uri)
+    }
+    suspend fun updateLocalAutoBackup(use: Boolean) {
+        updatePreference(PreferencesKeys.LOCAL_AUTO_BACKUP, use)
+    }
+    suspend fun updateDavLoginSuccess(success: Boolean) {
+        updatePreference(PreferencesKeys.DAV_LOGIN_SUCCESS, success)
+    }
+
+    suspend fun updateDavServerUrl(uri: String) {
+        updatePreference(PreferencesKeys.DAV_SERVER_URL, uri)
+    }
+
+    suspend fun updateDavUserName(name:String? ) {
+        updatePreference(PreferencesKeys.DAV_USER_NAME, name)
+    }
+    suspend fun updateDavPassword(password:String? ) {
+        updatePreference(PreferencesKeys.DAV_PASSWORD, password)
+    }
+
+    suspend fun updateSortTime(sortTime: SortTime) {
+        updatePreference(PreferencesKeys.SORT_TIME, sortTime.name)
+    }
+    suspend fun updateUseSafe(use: Boolean) {
+        updatePreference(PreferencesKeys.USE_SAFE, use)
+    }
+
+
+
 }

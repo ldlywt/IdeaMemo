@@ -75,3 +75,15 @@ fun DataStore<Preferences>.getBoolean(key: Preferences.Key<Boolean>, defaultValu
     }
 }
 
+fun DataStore<Preferences>.getInt(key: Preferences.Key<Int>, defaultValue: Int?): Flow<Int?> {
+    return this.data.map { preferences ->
+        preferences[key]?: defaultValue
+    }
+}
+
+fun DataStore<Preferences>.getString(key: Preferences.Key<String>, defaultValue: String?): Flow<String?> {
+    return this.data.map { preferences ->
+        preferences[key]?: defaultValue
+    }
+}
+
