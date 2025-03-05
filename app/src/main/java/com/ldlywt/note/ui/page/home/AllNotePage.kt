@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -126,8 +127,6 @@ fun AllNotesPage(
         show = openFilterBottomSheet,
         onDismissRequest = {
             openFilterBottomSheet = false
-        }, onConfirmRequest = {
-            openFilterBottomSheet = false
         })
 
     if (showWarnDialog) {
@@ -196,20 +195,21 @@ private fun toolbar(navController: NavHostController, filterBlock: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirmRequest: () -> Unit) {
+fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit) {
 
-    val viewModel: NoteViewModel = LocalMemosViewModel.current
     val sortTime = SharedPreferencesUtils.sortTime.collectAsState(SortTime.UPDATE_TIME_DESC)
     val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState()
 
     if (show) {
-        ModalBottomSheet(onDismissRequest = onDismissRequest) {
+        ModalBottomSheet(onDismissRequest = onDismissRequest , sheetState = sheetState) {
             Column(Modifier.fillMaxWidth()) {
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
                     scope.launch {
                         SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_DESC)
+                        sheetState.hide()
+                        onDismissRequest()
                     }
-                    onConfirmRequest()
                 }) {
                     Row(
                         Modifier
@@ -224,9 +224,9 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
                     scope.launch {
                         SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_ASC)
-                        onConfirmRequest()
+                        sheetState.hide()
+                        onDismissRequest()
                     }
-
                 }) {
                     Row(
                         Modifier
@@ -240,8 +240,9 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                 }
                 TextButton(modifier = Modifier.fillMaxWidth(), onClick = {
                     scope.launch {
-                        SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_ASC)
-                        onConfirmRequest()
+                        SharedPreferencesUtils.updateSortTime(SortTime.CREATE_TIME_DESC)
+                        sheetState.hide()
+                        onDismissRequest()
                     }
                 }) {
                     Row(
@@ -256,8 +257,9 @@ fun HomeFilterBottomSheet(show: Boolean, onDismissRequest: () -> Unit, onConfirm
                 }
                 TextButton(onClick = {
                     scope.launch {
-                        SharedPreferencesUtils.updateSortTime(SortTime.UPDATE_TIME_ASC)
-                        onConfirmRequest()
+                        SharedPreferencesUtils.updateSortTime(SortTime.CREATE_TIME_ASC)
+                        sheetState.hide()
+                        onDismissRequest()
                     }
                 }) {
                     Row(
