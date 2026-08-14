@@ -70,4 +70,4 @@ Your star is my biggest motivation! **🌟**
 
 ## ⭐ Star History
 
-[![Star History Chart]( https://api.star-history.com/svg?repos=ldlywt/IdeaMemo&type=Date)]( https://star-history.com/#ldlywt/IdeaMemo&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=ldlywt/IdeaMemo&type=Date)](https://star-history.dera.page/#ldlywt/IdeaMemo&Date)
