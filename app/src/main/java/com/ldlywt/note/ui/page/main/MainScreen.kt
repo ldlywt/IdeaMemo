@@ -113,8 +113,8 @@ fun MainScreen(navController: NavHostController) {
                             selectedIconColor = Color.White,
                             selectedTextColor = Color.White,
                             unselectedContainerColor = Color.Transparent,
-                            unselectedIconColor = Color.Black,
-                            unselectedTextColor = Color.Black
+                            unselectedIconColor = SaltTheme.colors.text,
+                            unselectedTextColor = SaltTheme.colors.text
                         )
                     )
                 }
@@ -129,7 +129,7 @@ fun MainScreen(navController: NavHostController) {
 
                 extraItems.forEach { (titleRes, icon, screen) ->
                     NavigationDrawerItem(
-                        label = { Text(titleRes.str, fontSize = 18.sp) },
+                        label = { Text(titleRes.str, fontSize = 18.sp, color = SaltTheme.colors.text) },
                         selected = false,
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -148,8 +148,8 @@ fun MainScreen(navController: NavHostController) {
                         shape = RoundedCornerShape(4.dp),
                         colors = NavigationDrawerItemDefaults.colors(
                             unselectedContainerColor = Color.Transparent,
-                            unselectedIconColor = Color.Black,
-                            unselectedTextColor = Color.Black
+                            unselectedIconColor = SaltTheme.colors.text,
+                            unselectedTextColor = SaltTheme.colors.text
                         )
                     )
                 }
