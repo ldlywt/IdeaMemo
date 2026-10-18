@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.ldlywt.note.ui.page.PictureDisplayPage
+import com.ldlywt.note.ui.page.WelcomePage
 import com.ldlywt.note.ui.page.data.DataManagerPage
 import com.ldlywt.note.ui.page.input.MemoInputPage
 import com.ldlywt.note.ui.page.input.MemoPreviewPage
@@ -37,10 +38,11 @@ import com.ldlywt.note.ui.page.tag.TagDetailPage
 import com.ldlywt.note.ui.page.tag.TagListPage
 import com.ldlywt.note.ui.page.tag.YearDetailPage
 import com.ldlywt.note.utils.SettingsPreferences
+import com.ldlywt.note.utils.lunchMain
 import com.moriafly.salt.ui.SaltTheme
 import com.moriafly.salt.ui.UnstableSaltApi
-import com.moriafly.salt.ui.lightSaltColors
 import com.moriafly.salt.ui.darkSaltColors
+import com.moriafly.salt.ui.lightSaltColors
 import com.moriafly.salt.ui.saltColorsByColorScheme
 import com.moriafly.salt.ui.saltConfigs
 
@@ -111,10 +113,23 @@ val LocalRootNavController = compositionLocalOf<NavHostController> { error("Not 
 fun NavHostContainer(
     navController: NavHostController,
 ) {
+    val firstLaunch by SettingsPreferences.firstLaunch.collectAsState(null)
+    if (firstLaunch == null) return
+
     NavHost(
         navController,
-        startDestination = Screen.Main,
+        startDestination = if (firstLaunch == true) Screen.Welcome else Screen.Main,
     ) {
+        composable<Screen.Welcome> {
+            WelcomePage(onAgree = {
+                lunchMain {
+                    SettingsPreferences.changeFirstLaunch(false)
+                    navController.navigate(Screen.Main) {
+                        popUpTo(Screen.Welcome) { inclusive = true }
+                    }
+                }
+            })
+        }
         composable<Screen.Explore> {
             ExplorePage(navHostController = navController)
         }

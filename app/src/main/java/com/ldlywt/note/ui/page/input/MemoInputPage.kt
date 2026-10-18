@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Image
@@ -58,6 +57,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -156,11 +156,15 @@ fun MemoInputPage(
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
-            EditActionBar(localDate, navBack = {
-                focusManager.clearFocus()
-                focusRequester.freeFocus()
-                navController.debouncedPopBackStack()
-            })
+            EditActionBar(
+                localDate = localDate,
+                wordCount = text.text.length,
+                navBack = {
+                    focusManager.clearFocus()
+                    focusRequester.freeFocus()
+                    navController.debouncedPopBackStack()
+                }
+            )
         }, bottomBar = {
             BottomAppBar(containerColor = SaltTheme.colors.background) {
                 if (tagList.isEmpty()) {
@@ -250,6 +254,14 @@ fun MemoInputPage(
 
                 Spacer(modifier = Modifier.weight(1f))
 
+                Text(
+                    text = stringResource(R.string.stats_chars_unit, text.text.length),
+                    style = SaltTheme.textStyles.sub,
+                    color = SaltTheme.colors.subText,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+
                 IconButton(enabled = text.text.isNotEmpty(), onClick = { submit() }) {
                     Icon(
                         Icons.AutoMirrored.Filled.Send,
@@ -323,6 +335,7 @@ fun MemoInputPage(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun EditActionBar(
     localDate: LocalDate,
+    wordCount: Int,
     navBack: () -> Unit
 ) {
     TopAppBar(
@@ -366,6 +379,15 @@ private fun EditActionBar(
                     tint = SaltTheme.colors.text
                 )
             }
+        },
+        actions = {
+            Text(
+                text = stringResource(R.string.stats_chars_unit, wordCount),
+                style = SaltTheme.textStyles.sub,
+                color = SaltTheme.colors.subText,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(end = 16.dp)
+            )
         }
     )
 }

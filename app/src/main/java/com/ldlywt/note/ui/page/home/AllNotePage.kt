@@ -78,15 +78,11 @@ import com.ldlywt.note.ui.page.LocalMemosState
 import com.ldlywt.note.ui.page.SortTime
 import com.ldlywt.note.ui.page.input.ChatInputDialog
 import com.ldlywt.note.ui.page.router.Screen
-import com.ldlywt.note.utils.FirstTimeWarmDialog
-import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.SharedPreferencesUtils
-import com.ldlywt.note.utils.lunchMain
 import com.ldlywt.note.utils.str
 import com.moriafly.salt.ui.SaltTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.LocalDate
@@ -100,7 +96,6 @@ fun AllNotePage(
     onExternalShowInputDialogChange: (Boolean) -> Unit = {}
 ) {
     val noteState: NoteState = LocalMemosState.current
-    var showWarnDialog by rememberSaveable { mutableStateOf(false) }
     var parentNoteForComment by rememberSaveable { mutableStateOf<NoteShowBean?>(null) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -118,10 +113,6 @@ fun AllNotePage(
                 lastScrolledSortTime = sortTime
             }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        showWarnDialog = SettingsPreferences.firstLaunch.first()
     }
 
     // 状态管理：控制背景遮罩
@@ -242,15 +233,6 @@ fun AllNotePage(
                     parentNoteForComment = null
                 }
             )
-        }
-    }
-
-    if (showWarnDialog) {
-        FirstTimeWarmDialog {
-            lunchMain {
-                SettingsPreferences.changeFirstLaunch(false)
-                showWarnDialog = false
-            }
         }
     }
 

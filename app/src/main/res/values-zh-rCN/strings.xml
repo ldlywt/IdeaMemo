@@ -175,4 +175,7 @@
     <string name="nav_calendar">日历</string>
     <string name="nav_tag">标签</string>
     <string name="nav_settings">设置</string>
+    <string name="save_image">保存图片</string>
+    <string name="save_image_success">已保存到相册</string>
+    <string name="save_image_failed">保存失败</string>
 </resources>

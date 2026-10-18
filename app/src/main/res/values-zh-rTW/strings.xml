@@ -147,4 +147,7 @@
     <string name="nav_tag">標籤</string>
     <string name="nav_calendar">日曆</string>
     <string name="nav_settings">設定</string>
+    <string name="save_image">儲存圖片</string>
+    <string name="save_image_success">已儲存至相簿</string>
+    <string name="save_image_failed">儲存失敗</string>
 </resources>

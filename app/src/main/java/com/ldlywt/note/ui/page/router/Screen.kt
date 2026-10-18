@@ -10,6 +10,9 @@ sealed class Screen {
     data object Main : Screen()
 
     @Serializable
+    data object Welcome : Screen()
+
+    @Serializable
     data object Explore : Screen()
 
     @Serializable

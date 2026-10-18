@@ -177,4 +177,7 @@
     <string name="nav_calendar">Calendar</string>
     <string name="nav_tag">Tag</string>
     <string name="nav_settings">Settings</string>
+    <string name="save_image">Save Image</string>
+    <string name="save_image_success">Saved to gallery</string>
+    <string name="save_image_failed">Failed to save image</string>
 </resources>
