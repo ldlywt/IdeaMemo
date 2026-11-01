@@ -155,7 +155,7 @@ fun ChatInputDialog(
         if (content.isNotBlank() || memoInputViewModel.uploadAttachments.isNotEmpty()) {
             memosViewModel.insertOrUpdate(Note(content = content, attachments = memoInputViewModel.uploadAttachments.toList(), parentNoteId = parentNote?.note?.noteId))
             text = TextFieldValue("")
-            memoInputViewModel.uploadAttachments.clear()
+            memoInputViewModel.clearAttachments()
         }
         focusManager.clearFocus()
         softwareKeyboardController?.hide()
@@ -332,7 +332,7 @@ fun ChatInputDialog(
             ) {
                 items(memoInputViewModel.uploadAttachments.toList(), key = { it.path }) { resource ->
                     InputImage(attachment = resource, isEdit = true, delete = { pat ->
-                        memoInputViewModel.uploadAttachments.remove(memoInputViewModel.uploadAttachments.firstOrNull { it.path == pat })
+                        memoInputViewModel.deleteResource(pat)
                     })
                 }
             }

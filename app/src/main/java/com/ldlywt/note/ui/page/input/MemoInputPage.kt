@@ -140,10 +140,15 @@ fun MemoInputPage(
         focusRequester.freeFocus()
         focusManager.clearFocus()
         memo?.note?.apply {
+            val newAttachments = memoInputViewModel.uploadAttachments.toList()
+            val removedAttachments = attachments.filterNot { old ->
+                newAttachments.any { it.path == old.path }
+            }
             this.content = text.text
             this.updateTime = System.currentTimeMillis()
-            this.attachments = memoInputViewModel.uploadAttachments.toList()
-            memosViewModel.insertOrUpdate(this)
+            this.attachments = newAttachments
+            memosViewModel.insertOrUpdate(this, removedAttachments)
+            memoInputViewModel.clearAttachments()
         }
         navController.debouncedPopBackStack()
     }
@@ -307,8 +312,7 @@ fun MemoInputPage(
 
     LaunchedEffect(Unit) {
         if (memo != null) {
-            memoInputViewModel.uploadAttachments.clear()
-            memoInputViewModel.uploadAttachments.addAll(memo.note.attachments)
+            memoInputViewModel.setAttachments(memo.note.attachments)
         }
         delay(300)
         focusRequester.requestFocus()

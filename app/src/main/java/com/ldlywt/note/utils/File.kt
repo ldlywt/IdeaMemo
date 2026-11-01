@@ -2,6 +2,7 @@ package com.ldlywt.note.utils
 
 import android.content.Context
 import android.net.Uri
+import com.ldlywt.note.App
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -29,6 +30,29 @@ fun File.newName(): String {
 
 fun File.newPath(): String {
     return "$parent/" + newName()
+}
+
+/**
+ * 删除附件文件。只允许删除应用私有目录下的文件，避免误删用户外部文件。
+ */
+fun deleteAttachmentFile(path: String) {
+    if (path.isBlank()) return
+    try {
+        val file = File(path)
+        if (!file.exists()) return
+        val app = App.instance
+        val appDirs = listOfNotNull(
+            app.getExternalFilesDir(null),
+            app.filesDir,
+            app.cacheDir,
+        )
+        val canonicalFile = file.canonicalFile
+        if (appDirs.any { canonicalFile.startsWith(it.canonicalFile) }) {
+            file.delete()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
 }
 
 fun copyFile(context: Context, pathFrom: Uri, pathTo: String) {

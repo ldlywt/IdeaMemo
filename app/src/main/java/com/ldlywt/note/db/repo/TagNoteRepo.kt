@@ -2,6 +2,7 @@ package com.ldlywt.note.db.repo
 
 import androidx.room.Query
 import androidx.room.Transaction
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.bean.NoteTagCrossRef
@@ -12,6 +13,7 @@ import com.ldlywt.note.db.dao.TagDao
 import com.ldlywt.note.db.dao.TagNoteDao
 import com.ldlywt.note.utils.CityRegexUtils
 import com.ldlywt.note.utils.TopicUtils
+import com.ldlywt.note.utils.deleteAttachmentFile
 import com.ldlywt.note.ui.page.SortTime
 import kotlinx.coroutines.flow.Flow
 import org.zeroturnaround.zip.FileSource.pair
@@ -109,6 +111,22 @@ class TagNoteRepo(
             tagDao.deleteOrUpdate(it)
             noteTagCrossRefDao.deleteCrossRef(NoteTagCrossRef(noteId = card.noteId, tag = it.tag))
         }
+        deleteUnreferencedAttachmentFiles(card.attachments)
+    }
+
+    /**
+     * 删除不再被任何笔记引用的附件文件，避免留下孤儿文件。
+     */
+    fun deleteUnreferencedAttachmentFiles(attachments: Collection<Attachment>) {
+        if (attachments.isEmpty()) return
+        val referencedPaths = noteDao.queryAllData()
+            .asSequence()
+            .flatMap { it.attachments.asSequence() }
+            .map { it.path }
+            .toSet()
+        attachments
+            .filter { it.path.isNotBlank() && it.path !in referencedPaths }
+            .forEach { deleteAttachmentFile(it.path) }
     }
 
     fun queryNoteById(noteId: Int): Note = noteDao.queryById(noteId)

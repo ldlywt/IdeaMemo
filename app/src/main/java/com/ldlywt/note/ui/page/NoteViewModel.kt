@@ -4,6 +4,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.bean.Tag
@@ -126,9 +127,11 @@ class NoteViewModel @Inject constructor(private val tagNoteRepo: TagNoteRepo) : 
 
     fun getNoteShowBeanByIdFlow(noteId: Long): Flow<NoteShowBean?> = tagNoteRepo.getNoteShowBeanByIdFlow(noteId)
 
-    fun insertOrUpdate(note: Note) {
+    fun insertOrUpdate(note: Note, removedAttachments: List<Attachment> = emptyList()) {
         viewModelScope.launch(Dispatchers.IO) {
             tagNoteRepo.insertOrUpdate(note)
+            // 笔记保存成功后再清理被移除的附件文件
+            tagNoteRepo.deleteUnreferencedAttachmentFiles(removedAttachments)
         }
     }
 
