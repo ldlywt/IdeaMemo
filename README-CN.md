@@ -1,8 +1,7 @@
-
-
 <div align="center">
     <h1>IdeaMemo</h1>
-    <p>一个用 Jetpack Compose 编写的快速记录应用，数据存在本地或者Webdav。</p>
+    <p>一款用 Jetpack Compose 编写的轻量级卡片笔记应用，数据保存在本地或你的 WebDAV。</p>
+    <a target="_blank" href="https://github.com/ldlywt/IdeaMemo/blob/master/README.md">English</a>&nbsp;&nbsp;|&nbsp;&nbsp;  简体中文&nbsp;&nbsp;</p>
     <a href="https://imgse.com/i/pEK8AXT"><img src="https://s21.ax1x.com/2025/02/15/pEK8AXT.md.jpg" alt="pEK8AXT.jpg" border="0" /></a>
     <br/>
     <br/>
@@ -16,20 +15,47 @@
     <img src="https://s21.ax1x.com/2025/02/15/pEK8yDS.png" width="32.2%" alt="" />
 </div>
 
-## ✨ 特征
+## ✨ 功能特性
 
-**IdeaMemo** 是一款 Android 轻量级以标签 Tag 为核心的卡片便签App。
+**IdeaMemo** 是一款 Android 轻量级卡片便签 App，以 #标签(Tag) 为核心组织灵感，支持图文混排与 Markdown 渲染。
 
-以下是当前功能：
+### 📝 记录与整理
+- **卡片笔记**：图文混排，支持可选**笔记标题**，正文以 Markdown 渲染。
+- **标签系统**：以 #TAG 索引笔记，独立的标签页 + 首页可点击的标签行。
+- **搜索**：首页顶部搜索框，全文检索。
+- **相册模式**：小红书风格瀑布流，集中浏览带图片的笔记。
+- **多选操作**：首页多选后批量移入回收站。
+- **回收站**：删除的笔记先进入回收站，可恢复、彻底删除或一键清空。
 
-- **隐私优先**：不需要申请任何权限，所有运行时数据都牢固地存储在您的本地数据库中，也可以上传到您自己的WEBDAV私有云。
-- **简洁干净**：以 #标签(TAG) 为索引，支持图文混排来记录和整理您的突发灵感。但是作为卡片笔记，不建议用来记录太长的文字。
-- **随时回顾**：支持日历视图、热力图和随机漫步等方式来回顾您的笔记。
-- **代码开源**：所有代码都开源在Github上，您可以随时查看和协作开发。
-- **免费使用**：完全免费享受所有功能，没有任何内容的费用。
-- **持续更新**：IdeaMemo App 自己一直在使用中，会持续更新。
-- ...
+### 🔍 回顾与发现
+- **日历视图**：配合贡献**热力图**，日期筛选采用 iOS 滚轮样式。
+- **随机漫步**：随时随机翻出一条旧笔记，重温过去的想法。
+- **统计分析**：记录天数、笔记数、总字数、图片数一目了然。
 
+### 🎨 个性化
+- Material 3 **动态取色**，明暗主题随心切换。
+- **正文字号**四档可调（小 / 标准 / 大 / 特大），全局生效。
+- 应用内切换语言：English、简体中文、繁體中文。
+
+### 🔒 隐私与安全
+- **隐私优先**：几乎不申请任何权限，所有数据牢牢保存在本地数据库。
+- **生物识别锁**：指纹 / 人脸解锁保护笔记。
+- **自动识别链接开关**：可关闭手机号、邮箱、网址的自动链接化。
+
+### 🔄 备份、同步与导入导出
+- **WebDAV**：备份与恢复到自己的私有云，配置可随时编辑。
+- **本地备份**：完整备份/恢复为紧凑 ZIP（含附件，体积约为旧版一半）。
+- **导出**：支持 Markdown / TXT / HTML 三种格式，并记住上次导出位置。
+- **导入**：支持 Markdown / TXT（IdeaMemo 导出的多篇 Markdown 自动按时间分段）与 HTML 备份还原（含标题）。
+- **局域网分享**：同一网络下用电脑浏览器直接查看手机上的笔记。
+- **分享为图片**：任意笔记可生成精美分享卡片，笔记中的照片也可保存到本地。
+
+### 🛠️ 技术栈
+- Kotlin + Jetpack Compose（Material 3）+ Navigation Compose
+- Room + Paging + DataStore + Hilt
+- Coil、Markwon、kizitonwose Calendar、SaltUI
+- Ktor（客户端 + 服务端，用于局域网分享）、sardine-android（WebDAV）、zt-zip
+- AndroidX Biometric、WorkManager、SplashScreen
 
 ## ✈️ 下载
 
@@ -50,18 +76,17 @@
 
 该项目由 Compose 创建。该项目的部分代码源自优秀的开源项目。
 
-
 **Open Source Projects**
 
 - [ReadYou](https://github.com/Ashinch/ReadYou)
 - [MoeMemosAndroid](https://github.com/mudkipme/MoeMemosAndroid)
 - [Animius](https://github.com/lanlinju/Animius)
 - [SaltUI](https://github.com/Moriafly/SaltUI)
+- [memos](https://github.com/usememos/memos)
 - ...
 
 ## 🧾 License
 GNU GPL v3.0 © [IdeaMemo](https://github.com/ldlywt/IdeaMemo/blob/master/LICENSE)
-
 
 您的star是我最大的动力，谢谢！ **🌟**
 
@@ -69,7 +94,6 @@ GNU GPL v3.0 © [IdeaMemo](https://github.com/ldlywt/IdeaMemo/blob/master/LICENS
 可以给我买一杯咖啡，让我更有动力继续开发。
 
 <img src="https://github.com/user-attachments/assets/737f222d-cdf4-4091-b95d-9262e678b460" alt="1742624588864" width="163.8" height="245.7" style="margin-right: 200px;">
-
 
 ## 🌸 捐赠名单
 
@@ -81,7 +105,6 @@ GNU GPL v3.0 © [IdeaMemo](https://github.com/ldlywt/IdeaMemo/blob/master/LICENS
 | Corcube           | 10   |
 | 奶酪很热情         | 10   |
 | KavenSu          | 10   |
-
 
 ## ⭐ Star History
 

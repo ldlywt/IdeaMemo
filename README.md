@@ -1,6 +1,6 @@
 <div align="center">
     <h1>IdeaMemo</h1>
-    <p>A quick record app written with Jetpack Compose. </p>
+    <p>A lightweight card-style note app built with Jetpack Compose.</p>
     <a target="_blank" href="https://github.com/ldlywt/IdeaMemo/blob/master/README-CN.md">简体中文</a>&nbsp;&nbsp;|&nbsp;&nbsp;  English&nbsp;&nbsp;</p>
     <img src="https://s21.ax1x.com/2025/02/15/pEK8AXT.md.jpg"/>
     <br/>
@@ -20,18 +20,45 @@
 
 ## ✨ Features
 
-**IdeaMemo** is an Android lightweight note-taking app.
+**IdeaMemo** is a lightweight Android card-note app. Record your ideas as cards with text and images, organized by #TAG.
 
-Here are the current features:
+### 📝 Notes & Organization
+- **Card notes**: mixed text and images, optional note **titles**, rendered in Markdown.
+- **Tag system**: index notes with #TAG; a dedicated tag list page and clickable tag row on the home page.
+- **Search**: full-text search bar right on the home page.
+- **Gallery mode**: a Xiaohongshu-style waterfall feed for notes with images.
+- **Multi-select**: batch select and delete notes on the home page.
+- **Recycle Bin**: deleted notes are soft-deleted into a recycle bin — restore them, delete permanently, or empty it entirely.
 
-- **Privacy First** : No need to apply any permissions, all runtime data is firmly stored in your local database or can be uploaded to your own WEBDAV private cloud.
-- **Simplicity and cleanliness** : Indexed by #TAG , it supports mixed text and graphics to record and organize your sudden inspirations. But as a card note, it is not recommended to record too long text.
-- **Review at any time** : Support calendar view, heatmap and random walk to review your notes.
-- **Code Open Source** : All code is open source on Github, you can view and collaborate on development at any time.
-- **Free to use** : Enjoy all features completely free of charge with no content fees.
-- **Continuously Updated** : IdeaMemo is always in use by itself and will be continuously updated.
-- ...
+### 🔍 Review & Rediscovery
+- **Calendar view** with a contribution **heatmap** and iOS-style wheel date filtering.
+- **Random Walk**: resurface a random note whenever you have a spare moment.
+- **Statistics**: days recorded, note count, character count, and media count at a glance.
 
+### 🎨 Personalization
+- Material 3 **dynamic color** and light/dark theme modes.
+- Adjustable **font size** (small / standard / large / extra large), applied app-wide.
+- In-app language switching: English, 简体中文, 繁體中文.
+
+### 🔒 Privacy & Safety
+- **Privacy first**: almost no permissions required — all data stays in your local database.
+- **Biometric lock**: protect your notes with fingerprint/face unlock.
+- **Auto-link toggle**: optionally stop phone numbers, emails, and URLs from being linkified.
+
+### 🔄 Backup, Sync & Import/Export
+- **WebDAV** backup & restore to your own private cloud, with editable config.
+- **Local backup**: full backup/restore as a compact ZIP (attachments included, ~50% smaller than before).
+- **Export** notes as Markdown / TXT / HTML.
+- **Import** Markdown / TXT files (multi-note Markdown exported by IdeaMemo is auto-split) and HTML backups.
+- **LAN share**: view your phone's notes from a computer browser on the same network.
+- **Share as image**: turn any note into a beautiful share card, and save note photos to local storage.
+
+### 🛠️ Tech Stack
+- Kotlin + Jetpack Compose (Material 3) + Navigation Compose
+- Room + Paging + DataStore + Hilt
+- Coil, Markwon, kizitonwose Calendar, SaltUI
+- Ktor (client & server for LAN share), sardine-android (WebDAV), zt-zip
+- AndroidX Biometric, WorkManager, SplashScreen
 
 ## ✈️ Download
 
@@ -49,10 +76,10 @@ Here are the current features:
 - **Enjoy the app.** The best contribution is simply using and enjoying the app I spent so much time on!
 
 ## 🌍 Translation
-Multi-language translation is done by AI, there may be errors, please point them out.Thanks!
+Multi-language translation is done by AI, there may be errors, please point them out. Thanks!
 
 ## 🤗 Thanks
-This project was created by Compose. Some of the project's code is derived from excellent open-source projects.
+This project was created with Compose. Some of the project's code is derived from excellent open-source projects.
 
 I'll gradually improve it, but the power of one person is limited. Pull requests are welcome.
 
