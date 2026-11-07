@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,7 +23,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -34,13 +41,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.ldlywt.note.R
 import com.ldlywt.note.bean.Note
+import com.ldlywt.note.component.ConfirmDialog
 import com.ldlywt.note.component.DraggableCard
 import com.ldlywt.note.component.EmptyComponent
 import com.ldlywt.note.component.ImageCard
 import com.ldlywt.note.ui.page.LocalMemosState
+import com.ldlywt.note.ui.page.LocalMemosViewModel
 import com.ldlywt.note.ui.page.router.Screen
 import com.ldlywt.note.ui.page.router.debouncedPopBackStack
+import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.toTime
+import kotlinx.coroutines.launch
 import com.moriafly.salt.ui.SaltTheme
 import com.moriafly.salt.ui.TitleBar
 import com.moriafly.salt.ui.UnstableSaltApi
@@ -53,6 +64,9 @@ fun ExplorePage(
     viewModel: ExploreViewModel = hiltViewModel()
 ) {
     val noteState = LocalMemosState.current
+    val memosViewModel = LocalMemosViewModel.current
+    val scope = rememberCoroutineScope()
+    val autoLink by SettingsPreferences.autoLinkEnabled.collectAsState(true)
     
     // 当从编辑页面返回且数据发生变化时，同步更新 ViewModel 中的对应内容
     LaunchedEffect(noteState.notes) {
@@ -97,6 +111,13 @@ fun ExplorePage(
                         onSwiped = { 
                             viewModel.removeTop() 
                         },
+                        onDelete = {
+                            scope.launch {
+                                memosViewModel.moveNoteToTrash(topNote)
+                                viewModel.removeTop()
+                            }
+                        },
+                        autoLink = autoLink,
                         navHostController = navHostController
                     )
                 }
@@ -111,6 +132,8 @@ fun ExploreMemoCardWithDraggable(
     currentIndex: Int,
     totalCount: Int,
     onSwiped: () -> Unit,
+    onDelete: () -> Unit,
+    autoLink: Boolean,
     navHostController: NavHostController
 ) {
     val configuration = LocalConfiguration.current
@@ -129,6 +152,8 @@ fun ExploreMemoCardWithDraggable(
             note = note,
             currentIndex = currentIndex,
             totalCount = totalCount,
+            onDelete = onDelete,
+            autoLink = autoLink,
             navHostController = navHostController
         )
     }
@@ -139,8 +164,11 @@ fun ExploreMemoContent(
     note: Note,
     currentIndex: Int,
     totalCount: Int,
+    onDelete: () -> Unit,
+    autoLink: Boolean,
     navHostController: NavHostController
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -156,6 +184,17 @@ fun ExploreMemoContent(
                 style = SaltTheme.textStyles.sub.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium)
             )
             Spacer(modifier = Modifier.weight(1f))
+            IconButton(
+                modifier = Modifier.size(28.dp),
+                onClick = { showDeleteConfirm = true }
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = stringResource(R.string.delete),
+                    tint = SaltTheme.colors.text.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
             IconButton(
                 modifier = Modifier.size(28.dp),
                 onClick = {
@@ -178,12 +217,23 @@ fun ExploreMemoContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
+            if (!note.noteTitle.isNullOrBlank()) {
+                Text(
+                    text = note.noteTitle!!,
+                    style = SaltTheme.textStyles.paragraph.copy(
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+            }
             MarkdownText(
                 markdown = note.content,
                 style = SaltTheme.textStyles.paragraph.copy(fontSize = 15.sp, lineHeight = 24.sp),
                 onTagClick = {
                     navHostController.navigate(Screen.TagDetail(it))
-                }
+                },
+                autoLink = autoLink
             )
             if (note.attachments.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -198,5 +248,24 @@ fun ExploreMemoContent(
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.outline,
         )
+        if (note.updateTime - note.createTime > 1000) {
+            Text(
+                modifier = Modifier.padding(start = 2.dp),
+                text = stringResource(R.string.updated_at, note.updateTime.toTime()),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
     }
+
+    ConfirmDialog(
+        visible = showDeleteConfirm,
+        title = stringResource(R.string.delete_to_trash_title),
+        content = stringResource(R.string.delete_to_trash_message),
+        onDismissRequest = { showDeleteConfirm = false },
+        onConfirmRequest = {
+            showDeleteConfirm = false
+            onDelete()
+        }
+    )
 }

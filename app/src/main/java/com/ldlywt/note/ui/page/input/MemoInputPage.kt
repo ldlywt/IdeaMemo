@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
@@ -60,7 +59,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +103,7 @@ fun MemoInputPage(
             )
         )
     }
+    var title by rememberSaveable { mutableStateOf(memo?.note?.noteTitle ?: "") }
     val tagList = LocalTags.current.filterNot { it.isCityTag }
     var tagMenuExpanded by remember { mutableStateOf(false) }
     var photoImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -290,6 +289,28 @@ fun MemoInputPage(
             OutlinedTextField(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                textStyle = SaltTheme.textStyles.paragraph.copy(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SaltTheme.colors.text
+                ),
+                value = title,
+                colors = customTextFieldColors,
+                onValueChange = { title = it },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.title_hint),
+                        color = SaltTheme.colors.subText,
+                        fontSize = 18.sp
+                    )
+                },
+                singleLine = true,
+            )
+
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth()
                     .weight(1f)
                     .focusRequester(focusRequester),
                 textStyle = SaltTheme.textStyles.paragraph.copy(
@@ -302,7 +323,6 @@ fun MemoInputPage(
                 onValueChange = { it: TextFieldValue ->
                     text = it
                 },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
 
             if (memoInputViewModel.uploadAttachments.isNotEmpty()) {

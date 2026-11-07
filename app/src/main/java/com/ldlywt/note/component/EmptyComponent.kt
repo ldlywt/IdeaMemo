@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.sp
 import com.ldlywt.note.R
 
 @Composable
-fun EmptyComponent(modifier: Modifier = Modifier.fillMaxSize()) {
+fun EmptyComponent(
+    modifier: Modifier = Modifier.fillMaxSize(),
+    text: String = "NoThing ~"
+) {
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center,
@@ -28,8 +31,8 @@ fun EmptyComponent(modifier: Modifier = Modifier.fillMaxSize()) {
             Image(painter = painterResource(id = R.drawable.ic_empty), contentDescription = null)
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "NoThing ~",
-                style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             )
         }
     }

@@ -15,7 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import com.ldlywt.note.R
 import com.ldlywt.note.bean.NoteShowBean
@@ -45,6 +47,7 @@ fun ActionBottomSheet(
     val viewModel = LocalMemosViewModel.current
     val skipPartiallyExpanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = skipPartiallyExpanded
     )
@@ -104,10 +107,8 @@ fun ActionBottomSheet(
 
                     item {
                         TextButton(onClick = {
-                            scope.launch {
-                                viewModel.deleteNote(noteShowBean.note, noteShowBean.tagList)
-                                onDismissRequest()
-                            }
+                            showDeleteConfirm = true
+                            onDismissRequest()
                         }, modifier = Modifier.fillMaxWidth()) {
                             Text(text = R.string.delete.str, style = SaltTheme.textStyles.paragraph)
                         }
@@ -128,4 +129,17 @@ fun ActionBottomSheet(
             }
         }
     }
+
+    ConfirmDialog(
+        visible = showDeleteConfirm,
+        title = stringResource(R.string.delete_to_trash_title),
+        content = stringResource(R.string.delete_to_trash_message),
+        onDismissRequest = { showDeleteConfirm = false },
+        onConfirmRequest = {
+            showDeleteConfirm = false
+            scope.launch {
+                viewModel.deleteNote(noteShowBean.note, noteShowBean.tagList)
+            }
+        }
+    )
 }

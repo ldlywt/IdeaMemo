@@ -180,4 +180,48 @@
     <string name="save_image">Save Image</string>
     <string name="save_image_success">Saved to gallery</string>
     <string name="save_image_failed">Failed to save image</string>
+
+    <!-- Update time / delete / recycle bin -->
+    <string name="updated_at">Updated %1$s</string>
+    <string name="delete_to_trash_title">Move to Recycle Bin?</string>
+    <string name="delete_to_trash_message">You can restore this note from Settings → Recycle Bin.</string>
+    <string name="recycle_bin">Recycle Bin</string>
+    <string name="recycle_bin_empty">Recycle Bin is empty</string>
+    <string name="restore">Restore</string>
+    <string name="delete_permanently">Delete Permanently</string>
+    <string name="empty_recycle_bin">Empty Recycle Bin</string>
+    <string name="empty_recycle_bin_title">Empty Recycle Bin?</string>
+    <string name="empty_recycle_bin_message">All notes in the Recycle Bin will be permanently deleted. This cannot be undone.</string>
+    <string name="restore_success">Restored</string>
+    <string name="delete_permanently_title">Delete permanently?</string>
+    <string name="delete_permanently_message">This note will be permanently deleted. This cannot be undone.</string>
+    <string name="batch_delete">Batch Delete</string>
+    <string name="select_all">Select All</string>
+    <string name="clear_selection">Clear Selection</string>
+    <string name="selected_count">%1$d selected</string>
+    <string name="delete_selected_title">Delete selected notes?</string>
+    <string name="delete_selected_message">%1$d notes will be moved to the Recycle Bin.</string>
+
+    <!-- Exit confirmation -->
+    <string name="exit_confirm_title">Exit IdeaMemo?</string>
+    <string name="exit_confirm_message">Your notes are saved locally. Press exit to close the app.</string>
+
+    <!-- WebDAV / import -->
+    <string name="edit_webdav_config">Edit WebDav Config</string>
+    <string name="import_markdown_txt">Import Markdown/TXT</string>
+    <string name="import_success_count">Imported %1$d notes</string>
+    <string name="import_failed">Import failed: %1$s</string>
+    <string name="data_help_title">Import &amp; Export Help</string>
+    <string name="data_help_message">• Txt/Markdown export: one note per file (TXT) or one file containing all notes (Markdown).\n• Import supports IdeaMemo HTML ZIP, Markdown and TXT files.\n• “Gallery” only shows notes with pictures. If it is empty, add a picture to a note first.\n• WebDAV restore works with any standard WebDAV server (Nutstore, TeraCloud, etc.).</string>
+
+    <!-- Editor appearance -->
+    <string name="font_scale">Text Size</string>
+    <string name="font_scale_small">Small</string>
+    <string name="font_scale_standard">Standard</string>
+    <string name="font_scale_large">Large</string>
+    <string name="font_scale_extra_large">Extra Large</string>
+    <string name="auto_link_switcher_text">Auto-detect Links</string>
+    <string name="auto_link_switcher_sub">Make phone numbers, emails and URLs clickable</string>
+    <string name="title_hint">Title (optional)</string>
+    <string name="gallery_empty_hint">No notes with pictures yet</string>
 </resources>

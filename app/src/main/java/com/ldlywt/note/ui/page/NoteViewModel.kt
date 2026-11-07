@@ -71,6 +71,12 @@ class NoteViewModel @Inject constructor(private val tagNoteRepo: TagNoteRepo) : 
         emptyList()
     )
 
+    val deletedNotes: StateFlow<List<NoteShowBean>> = tagNoteRepo.queryDeletedMemosFlow().stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
+
     var levelMemosMap = mutableStateMapOf<LocalDate, Level>()
         private set
 
@@ -144,6 +150,30 @@ class NoteViewModel @Inject constructor(private val tagNoteRepo: TagNoteRepo) : 
 
     suspend fun deleteNote(card: Note, tags: List<Tag>) = withContext(Dispatchers.IO) {
         tagNoteRepo.deleteNote(card, tags)
+    }
+
+    /** Moves a single note (from anywhere in the app) to the recycle bin. */
+    suspend fun moveNoteToTrash(note: Note) = withContext(Dispatchers.IO) {
+        val bean = tagNoteRepo.getNoteShowBeanById(note.noteId)
+        if (bean != null) {
+            tagNoteRepo.deleteNote(bean.note, bean.tagList)
+        }
+    }
+
+    suspend fun moveNotesToTrash(notes: List<NoteShowBean>) = withContext(Dispatchers.IO) {
+        notes.forEach { tagNoteRepo.deleteNote(it.note, it.tagList) }
+    }
+
+    suspend fun restoreNote(note: Note) = withContext(Dispatchers.IO) {
+        tagNoteRepo.restoreNote(note)
+    }
+
+    suspend fun deleteNotePermanently(note: Note, tags: List<Tag>) = withContext(Dispatchers.IO) {
+        tagNoteRepo.deleteNotePermanently(note, tags)
+    }
+
+    suspend fun emptyRecycleBin(notes: List<NoteShowBean>) = withContext(Dispatchers.IO) {
+        tagNoteRepo.emptyRecycleBin(notes)
     }
 
     suspend fun getAllDistinctYears(): List<String> = withContext(Dispatchers.IO) {

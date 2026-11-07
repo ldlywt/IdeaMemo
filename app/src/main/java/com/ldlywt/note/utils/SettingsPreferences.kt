@@ -7,6 +7,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ldlywt.note.App
@@ -29,7 +30,12 @@ object SettingsPreferences {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
+        val FONT_SCALE = intPreferencesKey("font_scale")
+        val AUTO_LINK = booleanPreferencesKey("auto_link")
     }
+
+    /** Available text scale percentages applied to the whole app. */
+    val fontScaleOptions = listOf(85, 100, 115, 130)
 
 
     private val themePreferences = App.instance.themePreferences
@@ -37,6 +43,10 @@ object SettingsPreferences {
     val themeMode = themePreferences.getEnum(PreferencesKeys.THEME_MODE, ThemeMode.SYSTEM)
     val dynamicColor = themePreferences.getBoolean(PreferencesKeys.DYNAMIC_COLOR, false)
     val firstLaunch = themePreferences.getBoolean(PreferencesKeys.FIRST_LAUNCH, true)
+
+    /** Text scale in percent, e.g. 100 means the system font scale. */
+    val fontScale = themePreferences.getInt(PreferencesKeys.FONT_SCALE, 100)
+    val autoLinkEnabled = themePreferences.getBoolean(PreferencesKeys.AUTO_LINK, true)
 
     private suspend fun <T> updatePreference(key: Preferences.Key<T>, value: T) {
         themePreferences.edit { preferences ->
@@ -67,6 +77,14 @@ object SettingsPreferences {
 
     suspend fun changeFirstLaunch(isFirst: Boolean) {
         updatePreference(PreferencesKeys.FIRST_LAUNCH, isFirst)
+    }
+
+    suspend fun changeFontScale(scalePercent: Int) {
+        updatePreference(PreferencesKeys.FONT_SCALE, scalePercent)
+    }
+
+    suspend fun changeAutoLink(enabled: Boolean) {
+        updatePreference(PreferencesKeys.AUTO_LINK, enabled)
     }
 }
 

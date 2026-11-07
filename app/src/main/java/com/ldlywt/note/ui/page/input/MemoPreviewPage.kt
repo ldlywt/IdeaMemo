@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,7 +46,9 @@ import com.ldlywt.note.ui.page.LocalMemosViewModel
 import com.ldlywt.note.ui.page.router.LocalRootNavController
 import com.ldlywt.note.ui.page.router.Screen
 import com.ldlywt.note.ui.page.router.debouncedPopBackStack
+import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.str
+import com.ldlywt.note.utils.toTime
 import com.moriafly.salt.ui.SaltTheme
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import java.time.Instant
@@ -59,6 +62,7 @@ fun MemoPreviewPage(memoId: Long) {
     val memosViewModel = LocalMemosViewModel.current
     val memo by remember(memoId) { memosViewModel.getNoteShowBeanByIdFlow(memoId) }.collectAsState(initial = null)
     val navController = LocalRootNavController.current
+    val autoLinkEnabled by SettingsPreferences.autoLinkEnabled.collectAsState(true)
 
     if (memo == null) {
         return
@@ -162,14 +166,37 @@ fun MemoPreviewPage(memoId: Long) {
                     .padding(16.dp)
                     .fillMaxWidth()
             ) {
+                val note = memo?.note
+                if (!note?.noteTitle.isNullOrBlank()) {
+                    Text(
+                        text = note!!.noteTitle!!,
+                        style = SaltTheme.textStyles.paragraph.copy(
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SaltTheme.colors.text
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                if (note != null && note.updateTime > note.createTime) {
+                    Text(
+                        text = stringResource(R.string.updated_at, note.updateTime.toTime()),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            color = SaltTheme.colors.subText
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
                 MarkdownText(
-                    markdown = memo?.note?.content ?: "",
+                    markdown = note?.content ?: "",
                     style = SaltTheme.textStyles.paragraph.copy(
                         fontSize = 16.sp,
                         lineHeight = 26.sp,
                         color = SaltTheme.colors.text
                     ),
                     isTextSelectable = true,
+                    autoLink = autoLinkEnabled,
                 )
             }
         }

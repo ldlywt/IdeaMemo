@@ -65,4 +65,7 @@ sealed class Screen {
 
     @Serializable
     data class CommentList(val parentNoteId: Long) : Screen()
+
+    @Serializable
+    object RecycleBin : Screen()
 }

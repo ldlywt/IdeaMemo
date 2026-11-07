@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.FormatColorText
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
@@ -53,7 +54,9 @@ import com.ldlywt.note.utils.ChoseFolderContract
 import com.ldlywt.note.utils.ExportHtmlContract
 import com.ldlywt.note.utils.ExportMarkDownContract
 import com.ldlywt.note.utils.ExportTextContract
+import com.ldlywt.note.utils.ExportUriMemory
 import com.ldlywt.note.utils.ImportHtmlZipContract
+import com.ldlywt.note.utils.ImportTextContract
 import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.lunchIo
 import com.ldlywt.note.utils.lunchMain
@@ -88,6 +91,7 @@ fun DataManagerPage(
     var isSuccess by remember { mutableStateOf(false) }
     val webDavList = remember { mutableListOf<DavData>() }
     var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current as AppCompatActivity
     var webInputDialog: Boolean by remember { mutableStateOf(false) }
     val autoBackSwitchState = SharedPreferencesUtils.localAutoBackup.collectAsState(false)
@@ -127,6 +131,7 @@ fun DataManagerPage(
 
     val exportTxtLauncher = rememberLauncherForActivityResult(ExportTextContract) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
+        ExportUriMemory.remember(context, uri)
         lunchMain {
             withContext(Dispatchers.IO) {
                 BackUp.exportTXTFile(list = noteState.notes, uri)
@@ -136,6 +141,7 @@ fun DataManagerPage(
 
     val exportHtmlLauncher = rememberLauncherForActivityResult(ExportHtmlContract) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
+        ExportUriMemory.remember(context, uri)
         lunchMain {
             isLoading = true
             withContext(Dispatchers.IO) {
@@ -149,6 +155,7 @@ fun DataManagerPage(
     val exportMarkDownLauncher =
         rememberLauncherForActivityResult(ExportMarkDownContract("IdeaMemo")) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
+            ExportUriMemory.remember(context, uri)
             lunchIo {
                 BackUp.exportMarkDownFile(list = noteState.notes, uri)
                 toast(R.string.excute_success.str)
@@ -163,9 +170,42 @@ fun DataManagerPage(
             isLoading = false
             result.onSuccess { count ->
                 isSuccess = true
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.import_success_count, count),
+                    Toast.LENGTH_SHORT
+                ).show()
             }.onFailure { e ->
                 isSuccess = false
-                Toast.makeText(context, "导入失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.import_failed, e.message ?: ""),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    val importTextLauncher = rememberLauncherForActivityResult(ImportTextContract) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        lunchMain {
+            isLoading = true
+            val result = BackUp.importFromMarkdownOrText(context, uri)
+            isLoading = false
+            result.onSuccess { count ->
+                isSuccess = true
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.import_success_count, count),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }.onFailure { e ->
+                isSuccess = false
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.import_failed, e.message ?: ""),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -182,6 +222,12 @@ fun DataManagerPage(
         },
         SettingsBean(R.string.html_import, Icons.Outlined.FileUpload) {
             importHtmlZipLauncher.launch(null)
+        },
+        SettingsBean(R.string.import_markdown_txt, Icons.Outlined.FileUpload) {
+            importTextLauncher.launch(null)
+        },
+        SettingsBean(R.string.data_help_title, Icons.Outlined.Info) {
+            showHelpDialog = true
         },
     )
 
@@ -239,6 +285,9 @@ fun DataManagerPage(
                 }
             )
             if (jianGuoCloudSwitchState.value) {
+                Item(text = R.string.edit_webdav_config.str, onClick = {
+                    webInputDialog = true
+                })
                 Item(text = R.string.webdav_backup.str, onClick = {
                     exportToWebdav()
                 })
@@ -277,7 +326,11 @@ fun DataManagerPage(
                     isSuccess = true
                 }.onFailure { e ->
                     isSuccess = false
-                    Toast.makeText(context, "还原失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.import_failed, e.message ?: ""),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             } else {
                 isLoading = false
@@ -285,6 +338,24 @@ fun DataManagerPage(
             }
         }
     })
+
+    if (showHelpDialog) {
+        RYDialog(
+            visible = true,
+            properties = DialogProperties(),
+            title = {
+                Text(text = stringResource(R.string.data_help_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.data_help_message))
+            },
+            confirmButton = {
+                TextButton(onClick = { showHelpDialog = false }) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+        )
+    }
 }
 
 @Composable

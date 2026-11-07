@@ -13,6 +13,8 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,6 +31,7 @@ import com.ldlywt.note.ui.page.settings.DonatePage
 import com.ldlywt.note.ui.page.settings.ExplorePage
 import com.ldlywt.note.ui.page.settings.GalleryPage
 import com.ldlywt.note.ui.page.settings.MoreInfoPage
+import com.ldlywt.note.ui.page.settings.RecycleBinPage
 import com.ldlywt.note.ui.page.settings.StatisticsPage
 import com.ldlywt.note.ui.page.share.SharePage
 import com.ldlywt.note.ui.page.tag.CommentListPage
@@ -65,6 +68,8 @@ fun App() {
     val context = LocalContext.current
     val themeModeState by SettingsPreferences.themeMode.collectAsState(SettingsPreferences.ThemeMode.SYSTEM)
     val dynamicColor by SettingsPreferences.dynamicColor.collectAsState(false)
+    val fontScalePercent by SettingsPreferences.fontScale.collectAsState(100)
+    val currentDensity = LocalDensity.current
 
     val darkTheme = when (themeModeState) {
         SettingsPreferences.ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -96,7 +101,15 @@ fun App() {
     }
 
 
-    CompositionLocalProvider(LocalRootNavController provides navController) {
+    val scaledDensity = Density(
+        density = currentDensity.density,
+        fontScale = currentDensity.fontScale * (fontScalePercent / 100f)
+    )
+
+    CompositionLocalProvider(
+        LocalRootNavController provides navController,
+        LocalDensity provides scaledDensity
+    ) {
         SaltTheme(
             colors = colors,
             configs = saltConfigs(isDarkTheme = darkTheme),
@@ -158,6 +171,9 @@ fun NavHostContainer(
         }
         composable<Screen.MoreInfo> {
             MoreInfoPage(navController = navController)
+        }
+        composable<Screen.RecycleBin> {
+            RecycleBinPage(navController = navController)
         }
 
         composable<Screen.TagDetail> { navBackStackEntry ->

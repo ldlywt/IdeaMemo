@@ -27,29 +27,29 @@ interface NoteDao {
     fun update(note: Note)
 
     @Transaction
-    @Query("SELECT * FROM Note order by update_time desc")
+    @Query("SELECT * FROM Note WHERE is_deleted = 0 order by update_time desc")
     fun queryAll(): Flow<List<Note>>
 
     @Transaction
-    @Query("SELECT * FROM Note order by update_time desc")
+    @Query("SELECT * FROM Note WHERE is_deleted = 0 order by update_time desc")
     fun queryAllData(): List<Note>
 
-    @Query("select * from Note where note_id =:id")
+    @Query("select * from Note where note_id =:id AND is_deleted = 0")
     fun queryById(id: Int): Note
 
-    @Query("select count(*) from Note")
+    @Query("select count(*) from Note WHERE is_deleted = 0")
     fun getCount(): Int
 
     @Query("delete from Note")
     fun deleteAll()
     @Transaction
-    @Query("SELECT DISTINCT location_info FROM Note WHERE location_info IS NOT NULL AND location_info != ''")
+    @Query("SELECT DISTINCT location_info FROM Note WHERE is_deleted = 0 AND location_info IS NOT NULL AND location_info != ''")
     fun getAllLocationInfo(): Flow<List<String>>
     @Transaction
-    @Query("SELECT * FROM Note WHERE location_info = :targetInfo")
+    @Query("SELECT * FROM Note WHERE is_deleted = 0 AND location_info = :targetInfo")
     fun getNotesByLocationInfo(targetInfo: String): Flow<List<NoteShowBean>>
     @Transaction
-    @Query("SELECT * FROM Note WHERE strftime('%Y-%m', create_time/1000) = :yearMonth")
+    @Query("SELECT * FROM Note WHERE is_deleted = 0 AND strftime('%Y-%m', create_time/1000) = :yearMonth")
     fun queryAllNotesByYearMonth(yearMonth: String): Flow<List<Note>>
 
     @Query("UPDATE Note SET location_info = NULL WHERE location_info = :locationInfo")

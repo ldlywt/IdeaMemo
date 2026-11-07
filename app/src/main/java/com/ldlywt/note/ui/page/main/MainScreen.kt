@@ -1,6 +1,8 @@
 package com.ldlywt.note.ui.page.main
 
+import android.app.Activity
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
@@ -44,11 +47,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ldlywt.note.R
+import com.ldlywt.note.component.ConfirmDialog
 import com.ldlywt.note.ui.page.home.AllNotePage
 import com.ldlywt.note.ui.page.home.CalenderPage
 import com.ldlywt.note.ui.page.router.Screen
@@ -69,8 +75,29 @@ fun MainScreen(navController: NavHostController) {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val view = LocalView.current
+    val activity = LocalContext.current as? Activity
 
     var showInputDialog by rememberSaveable { mutableStateOf(false) }
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(enabled = true) {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else {
+            showExitDialog = true
+        }
+    }
+
+    ConfirmDialog(
+        visible = showExitDialog,
+        title = stringResource(R.string.exit_confirm_title),
+        content = stringResource(R.string.exit_confirm_message),
+        onDismissRequest = { showExitDialog = false },
+        onConfirmRequest = {
+            showExitDialog = false
+            activity?.finish()
+        }
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -124,7 +151,8 @@ fun MainScreen(navController: NavHostController) {
                 val extraItems = listOf(
                     Triple(R.string.random_walk, Icons.Outlined.Explore, Screen.RandomWalk),
                     Triple(R.string.gallery, Icons.Outlined.Photo, Screen.Gallery),
-                    Triple(R.string.statistics, Icons.Outlined.BarChart, Screen.Statistics)
+                    Triple(R.string.statistics, Icons.Outlined.BarChart, Screen.Statistics),
+                    Triple(R.string.recycle_bin, Icons.Outlined.DeleteOutline, Screen.RecycleBin)
                 )
 
                 extraItems.forEach { (titleRes, icon, screen) ->

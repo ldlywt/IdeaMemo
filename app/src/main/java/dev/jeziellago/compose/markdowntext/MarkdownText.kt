@@ -48,7 +48,8 @@ fun MarkdownText(
     // it also enable the parent view to receive the click event
     disableLinkMovementMethod: Boolean = false,
     imageLoader: ImageLoader? = null,
-    linkifyMask: Int = Linkify.EMAIL_ADDRESSES or Linkify.PHONE_NUMBERS or Linkify.WEB_URLS,
+    autoLink: Boolean = true,
+    linkifyMask: Int = if (autoLink) Linkify.EMAIL_ADDRESSES or Linkify.PHONE_NUMBERS or Linkify.WEB_URLS else 0,
     enableSoftBreakAddsNewLine: Boolean = true,
     onLinkClicked: ((String) -> Unit)? = null,
     onTextLayout: ((numLines: Int) -> Unit)? = null,
@@ -58,7 +59,7 @@ fun MarkdownText(
     val defaultColor: Color = LocalContentColor.current
     val context: Context = LocalContext.current
     val markdownRender: Markwon =
-        remember {
+        remember(linkifyMask) {
             MarkdownRender.create(
                 context,
                 imageLoader,

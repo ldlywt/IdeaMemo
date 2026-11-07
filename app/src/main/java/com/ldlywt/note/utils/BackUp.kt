@@ -3,6 +3,7 @@ package com.ldlywt.note.utils
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.annotation.Keep
 import androidx.documentfile.provider.DocumentFile
@@ -54,6 +55,9 @@ object BackUp {
             context.contentResolver.openOutputStream(file.uri)?.use { stream ->
                 val writer = BufferedWriter(OutputStreamWriter(stream))
                 writer.append("${noteShowBean.note.createTime.toTime()}\n")
+                if (!title.isNullOrBlank()) {
+                    writer.append("Title: ${title.trim()}\n")
+                }
                 if (!noteShowBean.note.locationInfo.isNullOrEmpty()) {
                     writer.append(noteShowBean.note.locationInfo.plus("\n"))
                 }
@@ -93,18 +97,21 @@ object BackUp {
     }
 
     fun exportMarkDownFile(list: List<NoteShowBean>, uri: Uri) {
-        (App.instance.contentResolver.openOutputStream(uri) as? FileOutputStream)?.use { stream ->
-            val ow = OutputStreamWriter(stream)
-            val writer = BufferedWriter(ow)
-            list.forEachIndexed { _, noteShowBean ->
-                writer.append("### ${noteShowBean.note.createTime.toTime()}\n")
-                if (!noteShowBean.note.locationInfo.isNullOrEmpty()) {
-                    writer.append(noteShowBean.note.locationInfo.plus("\n"))
+        App.instance.contentResolver.openOutputStream(uri)?.use { stream ->
+            BufferedWriter(OutputStreamWriter(stream)).use { writer ->
+                list.forEach { noteShowBean ->
+                    val note = noteShowBean.note
+                    writer.append("### ${note.createTime.toTime()}\n")
+                    if (!note.noteTitle.isNullOrBlank()) {
+                        writer.append("<!-- title: ${note.noteTitle!!.trim().replace("\n", " ")} -->\n")
+                    }
+                    if (!note.locationInfo.isNullOrEmpty()) {
+                        writer.append(note.locationInfo.plus("\n"))
+                    }
+                    writer.append(note.content)
+                    writer.append("\n\n")
                 }
-                writer.append(noteShowBean.note.content.plus(""))
-                writer.append("\n\n")
             }
-            writer.close()
         }
     }
 
@@ -183,6 +190,10 @@ object BackUp {
             ).format(Date(noteShowBean.note.createTime))
             val contentHtml =
                 noteShowBean.note.content.split("\n").joinToString("") { "<p>$it</p>" }
+            val titleHtml = noteShowBean.note.noteTitle
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "<div class=\"title\">${it.trim()}</div>" }
+                ?: ""
             val tagListStr = noteShowBean.tagList.joinToString(" ") { "#${it.tag}" }
             val filesHtml =
                 noteShowBean.note.attachments.filter { it.type == Attachment.Type.IMAGE }
@@ -194,6 +205,7 @@ object BackUp {
             """
     <div class="memo" data-date="$dateMonth" data-tags="$tagListStr">
       <div class="time">$timeStr</div>
+      $titleHtml
       <div class="content">
         $contentHtml
       </div>
@@ -224,6 +236,7 @@ object BackUp {
           .memo { margin: 20px 0; background: #fff; padding: 20px; border-radius: 6px; word-wrap: break-word; }
           .memo:hover { box-shadow: 0px 2px 10px #dddddd; }
           .memo .time { color: #8d8d8d; font-size: 12px; }
+          .memo .title { color: #454545; font-size: 16px; font-weight: 600; margin: 6px 0 2px; }
           .memo .content { color: #323232; font-size: 14px; }
           .memo .content p { line-height: 1.8; min-height: 20px; margin: 0; }
           .memo .content ul, .memo .content ol { padding-inline-start: 22px; margin: 0; }
@@ -373,17 +386,19 @@ object BackUp {
     @Keep
     suspend fun importFromHtmlZip(context: Context, uri: Uri): Result<Int> =
         withContext(Dispatchers.IO) {
+            var tempDir: File? = null
             try {
                 if (Build.VERSION.SDK_INT >= 34) {
-                    ZipPathValidator.clearCallback()
+                    runCatching { ZipPathValidator.clearCallback() }
                 }
-                val tempDir = File(context.cacheDir, "html_import_${System.currentTimeMillis()}")
-                tempDir.mkdirs()
+                val dir = File(context.cacheDir, "html_import_${System.currentTimeMillis()}")
+                tempDir = dir
+                dir.mkdirs()
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    ZipUtil.unpack(inputStream, tempDir)
-                }
+                    ZipUtil.unpack(inputStream, dir)
+                } ?: return@withContext Result.failure(Exception("Unable to open zip file"))
                 val htmlFile =
-                    findFirstHtmlFileAndPrintAll(tempDir) ?: return@withContext Result.failure(
+                    findFirstHtmlFileAndPrintAll(dir) ?: return@withContext Result.failure(
                         Exception("HTML file not found in zip")
                     )
                 val htmlContent = htmlFile.readText()
@@ -396,12 +411,13 @@ object BackUp {
                 memoElements.forEach { memoElement ->
                     try {
                         val timeElement = memoElement.select(".time").first()
+                        val titleElement = memoElement.select(".title").first()
                         val contentElement = memoElement.select(".content").first()
                         val filesElement = memoElement.select(".files").first()
                         val tagsAttr = memoElement.attr("data-tags")
 
                         val timeStr = timeElement?.text() ?: ""
-                        
+
                         // 处理内容中的换行：
                         // 导出时是用 <p> 标签包裹每一行，所以还原时需要将 <p> 标签转换回换行符
                         val contentText = contentElement?.let { element ->
@@ -455,7 +471,7 @@ object BackUp {
                             .map { Tag(tag = it) }
 
                         val note = Note(
-                            noteTitle = null,
+                            noteTitle = titleElement?.text()?.trim()?.ifBlank { null },
                             content = contentText,
                             createTime = createTime,
                             updateTime = createTime,
@@ -475,19 +491,165 @@ object BackUp {
                 var importedCount = 0
                 notes.forEach { (note, tagList) ->
                     try {
-                        tagNoteRepo.insertOrUpdate(note)
+                        tagNoteRepo.insertWithExplicitTags(note, tagList)
                         importedCount++
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
                 }
-                tempDir.deleteRecursively()
+                Result.success(importedCount)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Result.failure(e)
+            } finally {
+                runCatching { tempDir?.deleteRecursively() }
+            }
+        }
+
+    /**
+     * Imports a single Markdown or plain text file. Markdown files exported by
+     * IdeaMemo contain one `### yyyy/MM/dd HH:mm` header per note; other files
+     * are imported as a single note.
+     */
+    @Keep
+    suspend fun importFromMarkdownOrText(context: Context, uri: Uri): Result<Int> =
+        withContext(Dispatchers.IO) {
+            try {
+                val text = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.readBytes().toString(Charsets.UTF_8)
+                } ?: return@withContext Result.failure(Exception("Unable to read file"))
+
+                val fileName = queryDisplayName(context, uri) ?: uri.lastPathSegment.orEmpty()
+                val isMarkdown = fileName.endsWith(".md", true) ||
+                        fileName.endsWith(".markdown", true)
+
+                val notes = parseImportedNotes(text, isMarkdown)
+                if (notes.isEmpty()) {
+                    return@withContext Result.failure(Exception("No notes found"))
+                }
+
+                val entryPoint =
+                    EntryPointAccessors.fromApplication(context, AppEntryPoint::class.java)
+                val tagNoteRepo = entryPoint.tagNoteRepo()
+
+                var importedCount = 0
+                notes.forEach { (note, tagList) ->
+                    try {
+                        tagNoteRepo.insertWithExplicitTags(note, tagList)
+                        importedCount++
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
                 Result.success(importedCount)
             } catch (e: Exception) {
                 e.printStackTrace()
                 Result.failure(e)
             }
         }
+
+    private val markdownHeaderRegex =
+        Regex("(?m)^###\\s+(\\d{4}[/-]\\d{2}[/-]\\d{2} \\d{2}:\\d{2}(?::\\d{2})?)\\s*$")
+
+    private val markdownTitleRegex =
+        Regex("(?m)^<!--\\s*title:\\s*(.*?)\\s*-->\\s*\\n?")
+
+    private fun parseImportedNotes(text: String, isMarkdown: Boolean): List<Pair<Note, List<Tag>>> {
+        val headers = markdownHeaderRegex.findAll(text).toList()
+        if (headers.isEmpty()) {
+            return listOf(parseSingleNote(text, isMarkdown))
+        }
+
+        val result = mutableListOf<Pair<Note, List<Tag>>>()
+        headers.forEachIndexed { index, header ->
+            val bodyStart = header.range.last + 1
+            val bodyEnd = if (index + 1 < headers.size) headers[index + 1].range.first else text.length
+            val body = text.substring(bodyStart, bodyEnd).trim('\n')
+            val createTime = parseImportedTime(header.groupValues[1]) ?: System.currentTimeMillis()
+
+            var title: String? = null
+            var content = body
+            markdownTitleRegex.find(body)?.let { match ->
+                title = match.groupValues[1].trim().ifBlank { null }
+                content = body.removeRange(match.range).trim('\n')
+            }
+            if (content.isBlank() && title == null) return@forEachIndexed
+
+            result.add(
+                Note(
+                    noteTitle = title,
+                    content = content,
+                    createTime = createTime,
+                    updateTime = createTime
+                ) to TopicUtils.getTopicListByString(content)
+            )
+        }
+        return result
+    }
+
+    private fun parseSingleNote(text: String, isMarkdown: Boolean): Pair<Note, List<Tag>> {
+        val lines = text.trim('\n').lines().toMutableList()
+        var createTime = System.currentTimeMillis()
+        var title: String? = null
+
+        if (lines.isNotEmpty()) {
+            parseImportedTime(lines.first().trim())?.let {
+                createTime = it
+                lines.removeAt(0)
+            }
+        }
+        if (lines.isNotEmpty() && lines.first().startsWith("Title: ")) {
+            title = lines.first().removePrefix("Title: ").trim().ifBlank { null }
+            lines.removeAt(0)
+        }
+        if (title == null && isMarkdown && lines.firstOrNull()?.startsWith("# ") == true) {
+            title = lines.first().removePrefix("# ").trim().ifBlank { null }
+            lines.removeAt(0)
+        }
+
+        val content = lines.joinToString("\n").trim('\n')
+        return Note(
+            noteTitle = title,
+            content = content,
+            createTime = createTime,
+            updateTime = createTime
+        ) to TopicUtils.getTopicListByString(content)
+    }
+
+    private fun parseImportedTime(raw: String): Long? {
+        val value = raw.trim()
+        if (value.isEmpty()) return null
+        val patterns = listOf(
+            "yyyy/MM/dd HH:mm",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy-MM-dd HH:mm:ss"
+        )
+        patterns.forEach { pattern ->
+            runCatching {
+                val format = SimpleDateFormat(pattern, Locale.ENGLISH)
+                format.isLenient = false
+                val parsed = format.parse(value)
+                if (parsed != null && format.format(parsed) == value) {
+                    return parsed.time
+                }
+            }
+        }
+        return null
+    }
+
+    private fun queryDisplayName(context: Context, uri: Uri): String? {
+        return runCatching {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index >= 0) cursor.getString(index) else null
+                } else {
+                    null
+                }
+            }
+        }.getOrNull()
+    }
 
 
     fun findFirstHtmlFileAndPrintAll(dir: File): File? {

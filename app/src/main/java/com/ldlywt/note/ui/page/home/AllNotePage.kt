@@ -1,5 +1,6 @@
 package com.ldlywt.note.ui.page.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -31,9 +33,12 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AvTimer
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,6 +57,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,13 +77,18 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.ldlywt.note.R
 import com.ldlywt.note.bean.NoteShowBean
+import com.ldlywt.note.component.ConfirmDialog
+import com.ldlywt.note.component.EmptyComponent
 import com.ldlywt.note.component.NoteCard
 import com.ldlywt.note.component.RYScaffold
 import com.ldlywt.note.state.NoteState
 import com.ldlywt.note.ui.page.LocalMemosState
+import com.ldlywt.note.ui.page.LocalMemosViewModel
+import com.ldlywt.note.ui.page.LocalTags
 import com.ldlywt.note.ui.page.SortTime
 import com.ldlywt.note.ui.page.input.ChatInputDialog
 import com.ldlywt.note.ui.page.router.Screen
+import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.str
 import com.moriafly.salt.ui.SaltTheme
@@ -96,15 +107,30 @@ fun AllNotePage(
     onExternalShowInputDialogChange: (Boolean) -> Unit = {}
 ) {
     val noteState: NoteState = LocalMemosState.current
+    val memosViewModel = LocalMemosViewModel.current
+    val tags = LocalTags.current
     var parentNoteForComment by rememberSaveable { mutableStateOf<NoteShowBean?>(null) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     var isGalleryMode by rememberSaveable { mutableStateOf(false) }
+    var selectionMode by rememberSaveable { mutableStateOf(false) }
+    var showBatchDeleteConfirm by remember { mutableStateOf(false) }
+    val selectedIds = remember { mutableStateListOf<Long>() }
 
     val sortTime by SharedPreferencesUtils.sortTime.collectAsState(SortTime.UPDATE_TIME_DESC)
+    val autoLink by SettingsPreferences.autoLinkEnabled.collectAsState(true)
     var lastScrolledSortTime by rememberSaveable { mutableStateOf<SortTime?>(null) }
+
+    fun exitSelectionMode() {
+        selectionMode = false
+        selectedIds.clear()
+    }
+
+    BackHandler(enabled = selectionMode) {
+        exitSelectionMode()
+    }
 
     LaunchedEffect(sortTime, noteState.notes) {
         if (lastScrolledSortTime != sortTime) {
@@ -131,70 +157,159 @@ fun AllNotePage(
                 }
             },
             titleContent = {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    HomeTabTitle(
-                        selected = !isGalleryMode,
-                        text = stringResource(R.string.home_title_one),
-                        onClick = { isGalleryMode = false }
+                if (selectionMode) {
+                    Text(
+                        text = stringResource(R.string.selected_count, selectedIds.size),
+                        style = SaltTheme.textStyles.main.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     )
-                    HomeTabTitle(
-                        selected = isGalleryMode,
-                        text = stringResource(R.string.home_title_two),
-                        onClick = { isGalleryMode = true }
-                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        HomeTabTitle(
+                            selected = !isGalleryMode,
+                            text = stringResource(R.string.home_title_one),
+                            onClick = {
+                                isGalleryMode = false
+                                exitSelectionMode()
+                            }
+                        )
+                        HomeTabTitle(
+                            selected = isGalleryMode,
+                            text = stringResource(R.string.home_title_two),
+                            onClick = {
+                                isGalleryMode = true
+                                exitSelectionMode()
+                            }
+                        )
+                    }
                 }
             },
             actions = {
-                Toolbar(navController, dateRangeBlock = {
-                    showDateRangePicker = true
-                }, onSortChanged = {
-                    scrollToTop(coroutineScope, listState)
-                })
+                if (selectionMode) {
+                    IconButton(onClick = {
+                        if (selectedIds.size == noteState.notes.size) {
+                            selectedIds.clear()
+                        } else {
+                            selectedIds.clear()
+                            selectedIds.addAll(noteState.notes.map { it.note.noteId })
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Rounded.DoneAll,
+                            contentDescription = stringResource(R.string.select_all),
+                            tint = SaltTheme.colors.text
+                        )
+                    }
+                    IconButton(
+                        enabled = selectedIds.isNotEmpty(),
+                        onClick = { showBatchDeleteConfirm = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = stringResource(R.string.delete),
+                            tint = if (selectedIds.isNotEmpty()) SaltTheme.colors.text else SaltTheme.colors.subText
+                        )
+                    }
+                    IconButton(onClick = { exitSelectionMode() }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.cancel),
+                            tint = SaltTheme.colors.text
+                        )
+                    }
+                } else {
+                    Toolbar(
+                        navController = navController,
+                        dateRangeBlock = { showDateRangePicker = true },
+                        onSortChanged = { scrollToTop(coroutineScope, listState) },
+                        onBatchDelete = {
+                            isGalleryMode = false
+                            selectionMode = true
+                            selectedIds.clear()
+                        }
+                    )
+                }
             },
             content = {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (isGalleryMode) {
-                        val galleryNotes = remember(noteState.notes) {
-                            noteState.notes.filter { it.note.attachments.isNotEmpty() }
-                        }
-                        LazyVerticalStaggeredGrid(
-                            columns = StaggeredGridCells.Fixed(2),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 8.dp)
-                        ) {
-                            items(galleryNotes, key = { it.note.noteId }) { noteBean ->
-                                GalleryItem(noteBean) {
-                                    navController.navigate(Screen.MemoPreview(noteBean.note.noteId))
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        HomeSearchBar(
+                            onClick = {
+                                navController.navigate(Screen.Search) {
+                                    launchSingleTop = true
                                 }
                             }
-                            item {
-                                Spacer(modifier = Modifier.height(100.dp))
-                            }
+                        )
+                        if (tags.isNotEmpty() && !isGalleryMode) {
+                            HomeTagRow(
+                                tags = tags,
+                                onClick = { navController.navigate(Screen.TagDetail(it)) }
+                            )
                         }
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(
-                                count = noteState.notes.size,
-                                key = { index -> noteState.notes[index].note.noteId }
-                            ) { index ->
-                                NoteCard(
-                                    noteShowBean = noteState.notes[index],
-                                    navHostController = navController,
-                                    onCommentClick = {
-                                        parentNoteForComment = it
-                                        onExternalShowInputDialogChange(true)
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (isGalleryMode) {
+                                val galleryNotes = remember(noteState.notes) {
+                                    noteState.notes.filter { it.note.attachments.isNotEmpty() }
+                                }
+                                if (galleryNotes.isEmpty()) {
+                                    EmptyComponent(text = stringResource(R.string.gallery_empty_hint))
+                                } else {
+                                    LazyVerticalStaggeredGrid(
+                                        columns = StaggeredGridCells.Fixed(2),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 8.dp)
+                                    ) {
+                                        items(galleryNotes, key = { it.note.noteId }) { noteBean ->
+                                            GalleryItem(noteBean) {
+                                                navController.navigate(Screen.MemoPreview(noteBean.note.noteId))
+                                            }
+                                        }
+                                        item {
+                                            Spacer(modifier = Modifier.height(100.dp))
+                                        }
                                     }
-                                )
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(100.dp))
+                                }
+                            } else {
+                                LazyColumn(
+                                    state = listState,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(
+                                        count = noteState.notes.size,
+                                        key = { index -> noteState.notes[index].note.noteId }
+                                    ) { index ->
+                                        val noteBean = noteState.notes[index]
+                                        NoteCard(
+                                            noteShowBean = noteBean,
+                                            navHostController = navController,
+                                            onCommentClick = {
+                                                parentNoteForComment = it
+                                                onExternalShowInputDialogChange(true)
+                                            },
+                                            selectionMode = selectionMode,
+                                            selected = selectedIds.contains(noteBean.note.noteId),
+                                            onSelectedChange = { checked ->
+                                                if (checked) {
+                                                    if (!selectedIds.contains(noteBean.note.noteId)) {
+                                                        selectedIds.add(noteBean.note.noteId)
+                                                    }
+                                                } else {
+                                                    selectedIds.remove(noteBean.note.noteId)
+                                                }
+                                            },
+                                            autoLink = autoLink
+                                        )
+                                    }
+                                    item {
+                                        Spacer(modifier = Modifier.height(100.dp))
+                                    }
+                                }
                             }
                         }
                     }
@@ -249,6 +364,73 @@ fun AllNotePage(
                 showDateRangePicker = false
             }
         )
+    }
+
+    if (showBatchDeleteConfirm) {
+        val selectedNotes = noteState.notes.filter { selectedIds.contains(it.note.noteId) }
+        ConfirmDialog(
+            visible = true,
+            title = stringResource(R.string.delete_selected_title),
+            content = stringResource(R.string.delete_selected_message, selectedNotes.size),
+            onDismissRequest = { showBatchDeleteConfirm = false },
+            onConfirmRequest = {
+                showBatchDeleteConfirm = false
+                coroutineScope.launch {
+                    memosViewModel.moveNotesToTrash(selectedNotes)
+                    exitSelectionMode()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun HomeSearchBar(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(50))
+            .background(SaltTheme.colors.subBackground)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Search,
+            contentDescription = stringResource(R.string.search_hint),
+            tint = SaltTheme.colors.subText,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.search_hint),
+            color = SaltTheme.colors.subText,
+            fontSize = 14.sp
+        )
+    }
+}
+
+@Composable
+private fun HomeTagRow(tags: List<com.ldlywt.note.bean.Tag>, onClick: (String) -> Unit) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(count = tags.size) { index ->
+            val tag = tags[index]
+            Text(
+                text = "#${tag.tag}",
+                color = SaltTheme.colors.highlight,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(SaltTheme.colors.subBackground)
+                    .clickable { onClick(tag.tag) }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            )
+        }
     }
 }
 
@@ -338,7 +520,8 @@ private fun scrollToTop(
 private fun Toolbar(
     navController: NavHostController,
     dateRangeBlock: () -> Unit,
-    onSortChanged: () -> Unit
+    onSortChanged: () -> Unit,
+    onBatchDelete: () -> Unit
 ) {
     IconButton(
         onClick = {
@@ -384,6 +567,19 @@ private fun Toolbar(
                 expanded = false
                 onSortChanged()
             })
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.batch_delete),
+                        color = SaltTheme.colors.text,
+                        fontSize = 14.sp
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onBatchDelete()
+                }
+            )
         }
     }
 }

@@ -178,4 +178,48 @@
     <string name="save_image">保存图片</string>
     <string name="save_image_success">已保存到相册</string>
     <string name="save_image_failed">保存失败</string>
+
+    <!-- 更新时间 / 删除 / 回收站 -->
+    <string name="updated_at">更新于 %1$s</string>
+    <string name="delete_to_trash_title">移入回收站？</string>
+    <string name="delete_to_trash_message">之后可以在「设置 → 回收站」中恢复这条笔记。</string>
+    <string name="recycle_bin">回收站</string>
+    <string name="recycle_bin_empty">回收站是空的</string>
+    <string name="restore">恢复</string>
+    <string name="delete_permanently">彻底删除</string>
+    <string name="empty_recycle_bin">清空回收站</string>
+    <string name="empty_recycle_bin_title">清空回收站？</string>
+    <string name="empty_recycle_bin_message">回收站中的所有笔记将被彻底删除，且无法恢复。</string>
+    <string name="restore_success">已恢复</string>
+    <string name="delete_permanently_title">彻底删除？</string>
+    <string name="delete_permanently_message">这条笔记将被彻底删除，且无法恢复。</string>
+    <string name="batch_delete">批量删除</string>
+    <string name="select_all">全选</string>
+    <string name="clear_selection">取消全选</string>
+    <string name="selected_count">已选择 %1$d 条</string>
+    <string name="delete_selected_title">删除选中的笔记？</string>
+    <string name="delete_selected_message">%1$d 条笔记将移入回收站。</string>
+
+    <!-- 退出确认 -->
+    <string name="exit_confirm_title">退出 IdeaMemo？</string>
+    <string name="exit_confirm_message">笔记已保存在本地，点击退出即可关闭应用。</string>
+
+    <!-- WebDAV / 导入 -->
+    <string name="edit_webdav_config">编辑 WebDav 配置</string>
+    <string name="import_markdown_txt">导入 Markdown/TXT</string>
+    <string name="import_success_count">已导入 %1$d 条笔记</string>
+    <string name="import_failed">导入失败：%1$s</string>
+    <string name="data_help_title">导入导出说明</string>
+    <string name="data_help_message">• TXT 导出：每条笔记一个文件；Markdown 导出：所有笔记合并为一个文件。\n• 支持导入 IdeaMemo 的 HTML ZIP、Markdown 和 TXT 文件。\n• 「瀑布」只展示带图片的笔记，如果没有图片所以显示空白。\n• WebDAV 还原支持坚果云、TeraCloud 等标准 WebDAV 服务。</string>
+
+    <!-- 编辑器外观 -->
+    <string name="font_scale">正文字号</string>
+    <string name="font_scale_small">小</string>
+    <string name="font_scale_standard">标准</string>
+    <string name="font_scale_large">大</string>
+    <string name="font_scale_extra_large">特大</string>
+    <string name="auto_link_switcher_text">自动识别链接</string>
+    <string name="auto_link_switcher_sub">将手机号、邮箱和网址变为可点击链接</string>
+    <string name="title_hint">标题（可选）</string>
+    <string name="gallery_empty_hint">还没有带图片的笔记</string>
 </resources>

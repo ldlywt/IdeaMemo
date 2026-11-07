@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Label
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.Wifi
@@ -109,10 +112,13 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
     val context = LocalContext.current
     val themeModePopupMenuState = rememberPopupState()
     val languagePopupMenuState = rememberPopupState()
+    val fontScalePopupMenuState = rememberPopupState()
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     val biometricAuthState by settingsViewModel.biometricAuthState.collectAsState()
     val dynamicColor by SettingsPreferences.dynamicColor.collectAsState(false)
     val themeMode by SettingsPreferences.themeMode.collectAsState(SettingsPreferences.ThemeMode.SYSTEM)
+    val fontScale by SettingsPreferences.fontScale.collectAsState(100)
+    val autoLinkEnabled by SettingsPreferences.autoLinkEnabled.collectAsState(true)
     val scope = rememberCoroutineScope()
 
     var isLoading by remember { mutableStateOf(false) }
@@ -216,6 +222,42 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                             )
                         }
                     }
+
+                    ItemPopup(
+                        state = fontScalePopupMenuState,
+                        iconPainter = rememberVectorPainter(Icons.Outlined.FormatSize),
+                        iconColor = SaltTheme.colors.text,
+                        text = stringResource(R.string.font_scale),
+                        selectedItem = fontScaleLabel(fontScale),
+                        popupWidth = 160
+                    ) {
+                        SettingsPreferences.fontScaleOptions.forEach { option ->
+                            PopupMenuItem(
+                                onClick = {
+                                    scope.launch {
+                                        SettingsPreferences.changeFontScale(option)
+                                    }
+                                    fontScalePopupMenuState.dismiss()
+                                },
+                                selected = fontScale == option,
+                                text = fontScaleLabel(option),
+                                iconColor = SaltTheme.colors.text
+                            )
+                        }
+                    }
+
+                    ItemSwitcher(
+                        state = autoLinkEnabled,
+                        onChange = { checked ->
+                            scope.launch {
+                                SettingsPreferences.changeAutoLink(checked)
+                            }
+                        },
+                        text = stringResource(R.string.auto_link_switcher_text),
+                        sub = stringResource(R.string.auto_link_switcher_sub),
+                        iconPainter = rememberVectorPainter(Icons.Outlined.Link),
+                        iconColor = SaltTheme.colors.text,
+                    )
                 }
             }
 
@@ -237,6 +279,14 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                         },
                         text = R.string.local_data_manager.str,
                         iconPainter = rememberVectorPainter(ImageVector.vectorResource(R.drawable.ic_database))
+                    )
+
+                    Item(
+                        onClick = {
+                            navController.navigate(Screen.RecycleBin)
+                        },
+                        text = R.string.recycle_bin.str,
+                        iconPainter = rememberVectorPainter(Icons.Outlined.DeleteOutline)
                     )
 
                     Item(
@@ -315,6 +365,14 @@ fun SettingsPreferenceScreen(navController: NavHostController) {
                 Spacer(modifier = Modifier.height(120.dp))
             }
         })
+}
+
+@Composable
+private fun fontScaleLabel(percent: Int): String = when (percent) {
+    85 -> stringResource(R.string.font_scale_small)
+    115 -> stringResource(R.string.font_scale_large)
+    130 -> stringResource(R.string.font_scale_extra_large)
+    else -> stringResource(R.string.font_scale_standard)
 }
 
 @Composable

@@ -34,6 +34,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -56,6 +58,7 @@ import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.component.RYScaffold
 import com.ldlywt.note.ui.page.LocalMemosViewModel
+import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.lunchIo
 import com.ldlywt.note.utils.str
 import com.ldlywt.note.utils.toTime
@@ -71,6 +74,7 @@ fun SharePage(noteId: Long, navController: NavHostController) {
 
     val context = LocalContext.current
     val noteViewModel = LocalMemosViewModel.current
+    val autoLinkEnabled by SettingsPreferences.autoLinkEnabled.collectAsState(true)
     val noteShowBean = remember { mutableStateOf<NoteShowBean?>(null) }
     val captureView = remember { mutableStateOf<View?>(null) }
     val scrollState = remember { ScrollState(0) }
@@ -180,10 +184,22 @@ fun SharePage(noteId: Long, navController: NavHostController) {
                                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
                                             color = MaterialTheme.colorScheme.outline,
                                         )
+                                        if (!note.noteTitle.isNullOrBlank()) {
+                                            Text(
+                                                modifier = Modifier.padding(start = 2.dp, top = 4.dp),
+                                                text = note.noteTitle!!,
+                                                style = MaterialTheme.typography.titleMedium.copy(
+                                                    fontSize = 18.sp,
+                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                                                ),
+                                                color = SaltTheme.colors.text,
+                                            )
+                                        }
                                         MarkdownText(
                                             markdown = note.content,
                                             style = SaltTheme.textStyles.paragraph.copy(fontSize = 15.sp, lineHeight = 24.sp),
-                                            modifier = Modifier.fillMaxWidth() // 确保MarkdownText填充可用宽度
+                                            modifier = Modifier.fillMaxWidth(), // 确保MarkdownText填充可用宽度
+                                            autoLink = autoLinkEnabled,
                                         )
                                         if (note.attachments.isNotEmpty()) {
                                             Spacer(modifier = Modifier.height(8.dp))

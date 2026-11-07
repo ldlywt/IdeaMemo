@@ -103,9 +103,55 @@ class TagNoteRepo(
         }
     }
 
+    /**
+     * Inserts a note together with an explicit tag list, merging tags detected in
+     * the content. Used by imports so that tags stored outside the content
+     * (for example the HTML backup's `data-tags` attribute) survive a round trip.
+     */
+    @Query("")
+    @Transaction
+    fun insertWithExplicitTags(card: Note, explicitTags: List<Tag>) {
+        val noteId = noteDao.insert(card)
+        val allTags = (TopicUtils.getTopicListByString(card.content) + explicitTags)
+            .filter { it.tag.isNotBlank() }
+            .distinctBy { it.tag }
+        if (allTags.isEmpty()) {
+            val tempTag = Tag(tag = "")
+            tagDao.insertOrUpdate(tempTag)
+            noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = tempTag.tag))
+            return
+        }
+        allTags.forEach {
+            tagDao.insertOrUpdate(it)
+            noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = it.tag))
+        }
+    }
+
+    fun queryDeletedMemosFlow(): Flow<List<NoteShowBean>> = tagNoteDao.getDeletedNotes()
+
+    /**
+     * Moves a note to the recycle bin without touching its tags, so that the
+     * tag relations can be restored together with the note.
+     */
     @Query("")
     @Transaction
     fun deleteNote(card: Note, tags: List<Tag>) {
+        card.isDeleted = true
+        card.updateTime = System.currentTimeMillis()
+        noteDao.update(card)
+    }
+
+    @Query("")
+    @Transaction
+    fun restoreNote(card: Note) {
+        card.isDeleted = false
+        card.updateTime = System.currentTimeMillis()
+        noteDao.update(card)
+    }
+
+    @Query("")
+    @Transaction
+    fun deleteNotePermanently(card: Note, tags: List<Tag>) {
         noteDao.delete(card)
         tags.forEach {
             tagDao.deleteOrUpdate(it)
@@ -127,6 +173,14 @@ class TagNoteRepo(
         attachments
             .filter { it.path.isNotBlank() && it.path !in referencedPaths }
             .forEach { deleteAttachmentFile(it.path) }
+    }
+
+    @Query("")
+    @Transaction
+    fun emptyRecycleBin(cards: List<NoteShowBean>) {
+        cards.forEach { bean ->
+            deleteNotePermanently(bean.note, bean.tagList)
+        }
     }
 
     fun queryNoteById(noteId: Int): Note = noteDao.queryById(noteId)

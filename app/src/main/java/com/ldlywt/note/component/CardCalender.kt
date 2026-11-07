@@ -13,6 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,6 +29,7 @@ import coil.compose.AsyncImage
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.ui.page.router.Screen
+import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.toMinute
 import com.moriafly.salt.ui.SaltTheme
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -41,6 +43,7 @@ fun CardCalender(
 
     var openBottomSheet by rememberSaveable { mutableStateOf(false) }
     val note = noteShowBean.note
+    val autoLinkEnabled by SettingsPreferences.autoLinkEnabled.collectAsState(true)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SaltTheme.colors.subBackground),
@@ -80,7 +83,8 @@ fun CardCalender(
                 maxLines = 5, 
                 onTagClick = {
                     navHostController.navigate(Screen.TagDetail(it))
-                }
+                },
+                autoLink = autoLinkEnabled,
             )
             
             if (note.attachments.isNotEmpty()) {
