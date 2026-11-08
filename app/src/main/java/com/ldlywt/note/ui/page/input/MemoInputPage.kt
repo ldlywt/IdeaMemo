@@ -27,8 +27,6 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +72,9 @@ import com.ldlywt.note.ui.page.router.debouncedPopBackStack
 import com.ldlywt.note.utils.handlePickFiles
 import com.ldlywt.note.utils.str
 import com.moriafly.salt.ui.SaltTheme
+import com.moriafly.salt.ui.UnstableSaltApi
+import com.moriafly.salt.ui.popup.PopupMenu
+import com.moriafly.salt.ui.popup.PopupMenuItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -83,6 +84,7 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
 
+@OptIn(UnstableSaltApi::class)
 @Composable
 fun MemoInputPage(
     memoId: Long,
@@ -144,6 +146,8 @@ fun MemoInputPage(
                 newAttachments.any { it.path == old.path }
             }
             this.content = text.text
+            // 标题为可选项：空白时存 null，避免详情页/列表出现空标题占位
+            this.noteTitle = title.trim().ifBlank { null }
             this.updateTime = System.currentTimeMillis()
             this.attachments = newAttachments
             memosViewModel.insertOrUpdate(this, removedAttachments)
@@ -181,15 +185,13 @@ fun MemoInputPage(
                     }
                 } else {
                     Box(modifier = Modifier.background(SaltTheme.colors.background)) {
-                        DropdownMenu(
-                            modifier = Modifier.background(SaltTheme.colors.background),
+                        PopupMenu(
                             expanded = tagMenuExpanded,
                             onDismissRequest = { tagMenuExpanded = false },
                             properties = PopupProperties(focusable = false)
                         ) {
                             tagList.forEach { tag ->
-                                DropdownMenuItem(
-                                    text = { Text(tag.tag, color = SaltTheme.colors.text) },
+                                PopupMenuItem(
                                     onClick = {
                                         val tagText = "${tag.tag} "
                                         text = text.copy(
@@ -199,6 +201,7 @@ fun MemoInputPage(
                                         )
                                         tagMenuExpanded = false
                                     },
+                                    text = tag.tag
                                 )
                             }
                         }

@@ -4,6 +4,7 @@
     <string name="cancel">取消</string>
     <string name="explore">探索</string>
     <string name="search_hint">搜索</string>
+    <string name="search_history">搜索历史</string>
     <string name="welcome">欢迎使用</string>
     <string name="agree">同意并继续</string>
     <string name="ok">确定</string>

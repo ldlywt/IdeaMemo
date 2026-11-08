@@ -1,6 +1,7 @@
 package com.ldlywt.note.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableFloatStateOf
@@ -164,6 +166,25 @@ fun ItemPopup(  //TODO 根据文字长度自动调整宽度
     }
 }
 
+
+/**
+ * 项目统一风格的底部面板拖拽把手，替代 Material 默认的 DragHandle。
+ */
+@Composable
+fun SaltDragHandle() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 32.dp, height = 4.dp)
+                .background(SaltTheme.colors.subText.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+        )
+    }
+}
 
 @Composable
 fun ConfirmDialog(

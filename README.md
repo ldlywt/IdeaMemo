@@ -25,7 +25,7 @@
 ### 📝 Notes & Organization
 - **Card notes**: mixed text and images, optional note **titles**, rendered in Markdown.
 - **Tag system**: index notes with #TAG; a dedicated tag list page and clickable tag row on the home page.
-- **Search**: full-text search bar right on the home page.
+- **Search**: full-text search bar right on the home page, with saved search history (flow chips, up to 4 rows).
 - **Gallery mode**: a Xiaohongshu-style waterfall feed for notes with images.
 - **Multi-select**: batch select and delete notes on the home page.
 - **Recycle Bin**: deleted notes are soft-deleted into a recycle bin — restore them, delete permanently, or empty it entirely.
@@ -60,12 +60,25 @@
 - Ktor (client & server for LAN share), sardine-android (WebDAV), zt-zip
 - AndroidX Biometric, WorkManager, SplashScreen
 
+## 🆕 What's New in 3.1
+- Notes now support optional **titles**, and update times are shown on cards, preview, share, and gallery pages.
+- New **Recycle Bin**: soft-deleted notes can be restored, deleted permanently, or the bin emptied in one tap.
+- App-wide **font size** (4 levels) and an **auto-link** toggle.
+- Improved import/export: Markdown / TXT import & export (remembers the last export location), HTML backup restore.
+- DayNight system theme, exit-confirmation dialog on the home page, and other refinements.
+
 ## ✈️ Download
 
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
      alt="Get it on Google Play"
      height="80">](https://play.google.com/store/apps/details?id=com.ldlywt.note)
 [<img src="https://s1.ax1x.com/2023/01/12/pSu1a36.png" alt="Get it on GitHub" height="80">](https://github.com/ldlywt/IdeaMemo/releases/latest)     
+
+
+## 🧑‍💻 Build from Source
+- Install **Android Studio** (bundled JDK 17), open this repo, and run the `app` module directly.
+- Or from the command line: `./gradlew :app:assembleDebug` (`gradlew.bat` on Windows). Building requires JDK 17 and compileSdk 36 (Android 16).
+- Minimum supported version is **Android 8.0 (API 26)**.
 
 ## 🤝 How to contribute
 - **Feel free to contribute code**, but please don't mention simple fix code!

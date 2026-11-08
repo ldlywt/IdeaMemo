@@ -31,8 +31,6 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Tag
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -79,6 +77,9 @@ import com.ldlywt.note.ui.page.LocalTags
 import com.ldlywt.note.utils.handlePickFiles
 import com.ldlywt.note.utils.toast
 import com.moriafly.salt.ui.SaltTheme
+import com.moriafly.salt.ui.UnstableSaltApi
+import com.moriafly.salt.ui.popup.PopupMenu
+import com.moriafly.salt.ui.popup.PopupMenuItem
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -176,6 +177,7 @@ fun ChatInputDialog(
         dismiss()
     }
 
+    @OptIn(UnstableSaltApi::class)
     @Composable
     fun TagButton(tagList: List<Tag>) {
         val filteredTags = remember(tagList, tagSearchQuery) {
@@ -216,20 +218,20 @@ fun ChatInputDialog(
 
         if (filteredTags.isNotEmpty() && tagMenuExpanded) {
             Box {
-                DropdownMenu(
+                PopupMenu(
                     modifier = Modifier.wrapContentHeight().heightIn(max = 400.dp),
                     expanded = tagMenuExpanded,
                     onDismissRequest = { tagMenuExpanded = false; tagSearchQuery = null },
                     properties = PopupProperties(focusable = false)
                 ) {
                     filteredTags.forEach { tag ->
-                        DropdownMenuItem(
-                            text = { Text(tag.tag) },
+                        PopupMenuItem(
                             onClick = {
                                 if (tagSearchQuery != null) replaceTagText(tag.tag) else insertTagText("#${tag.tag.removePrefix("#")} ")
                                 tagMenuExpanded = false
                                 tagSearchQuery = null
                             },
+                            text = tag.tag
                         )
                     }
                 }

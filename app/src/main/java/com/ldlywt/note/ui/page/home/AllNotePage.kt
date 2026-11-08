@@ -36,20 +36,16 @@ import androidx.compose.material.icons.outlined.AvTimer
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,11 +62,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -81,6 +79,7 @@ import com.ldlywt.note.component.ConfirmDialog
 import com.ldlywt.note.component.EmptyComponent
 import com.ldlywt.note.component.NoteCard
 import com.ldlywt.note.component.RYScaffold
+import com.ldlywt.note.component.SaltDragHandle
 import com.ldlywt.note.state.NoteState
 import com.ldlywt.note.ui.page.LocalMemosState
 import com.ldlywt.note.ui.page.LocalMemosViewModel
@@ -92,6 +91,10 @@ import com.ldlywt.note.utils.SettingsPreferences
 import com.ldlywt.note.utils.SharedPreferencesUtils
 import com.ldlywt.note.utils.str
 import com.moriafly.salt.ui.SaltTheme
+import com.moriafly.salt.ui.TextButton
+import com.moriafly.salt.ui.UnstableSaltApi
+import com.moriafly.salt.ui.popup.PopupMenu
+import com.moriafly.salt.ui.popup.PopupMenuItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -421,7 +424,7 @@ private fun HomeTagRow(tags: List<com.ldlywt.note.bean.Tag>, onClick: (String) -
         items(count = tags.size) { index ->
             val tag = tags[index]
             Text(
-                text = "#${tag.tag}",
+                text = "#${tag.tag.removePrefix("#")}",
                 color = SaltTheme.colors.highlight,
                 fontSize = 12.sp,
                 modifier = Modifier
@@ -516,6 +519,7 @@ private fun scrollToTop(
     }
 }
 
+@OptIn(UnstableSaltApi::class)
 @Composable
 private fun Toolbar(
     navController: NavHostController,
@@ -558,27 +562,22 @@ private fun Toolbar(
                 tint = SaltTheme.colors.text
             )
         }
-        DropdownMenu(
+        PopupMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(SaltTheme.colors.popup)
+            modifier = Modifier.width(200.dp),
+            offset = DpOffset((-200).dp, 0.dp)
         ) {
             SortFilterMenuContent(onSortChanged = {
                 expanded = false
                 onSortChanged()
             })
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = stringResource(R.string.batch_delete),
-                        color = SaltTheme.colors.text,
-                        fontSize = 14.sp
-                    )
-                },
+            PopupMenuItem(
                 onClick = {
                     expanded = false
                     onBatchDelete()
-                }
+                },
+                text = stringResource(R.string.batch_delete)
             )
         }
     }
@@ -631,28 +630,13 @@ fun SortFilterMenuContent(onSortChanged: () -> Unit = {}) {
     )
 }
 
+@OptIn(UnstableSaltApi::class)
 @Composable
 fun SortMenuItem(text: String, selected: Boolean, onClick: () -> Unit) {
-    DropdownMenuItem(
-        text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = text,
-                    color = if (selected) SaltTheme.colors.highlight else SaltTheme.colors.text,
-                    fontSize = 14.sp
-                )
-                if (selected) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = SaltTheme.colors.highlight,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        },
-        onClick = onClick
+    PopupMenuItem(
+        onClick = onClick,
+        selected = selected,
+        text = text
     )
 }
 
@@ -678,13 +662,15 @@ fun ModernDateRangePicker(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         containerColor = SaltTheme.colors.background,
-        dragHandle = { DragHandle() }
+        dragHandle = { SaltDragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
+            // 顶部只保留标题与「确定」，不再放「取消」文字按钮；
+            // 关闭统一由点击遮罩或下滑弹框完成。
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -692,22 +678,22 @@ fun ModernDateRangePicker(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onDismissRequest) {
-                    Text(text = stringResource(R.string.cancel), color = SaltTheme.colors.subText)
-                }
                 Text(
                     text = stringResource(R.string.date_range),
                     style = SaltTheme.textStyles.main.copy(fontWeight = FontWeight.Bold)
                 )
-                TextButton(onClick = {
-                    val start = LocalDate.of(startYear, startMonth, startDay)
-                        .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    val end = LocalDate.of(endYear, endMonth, endDay)
-                        .atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    onConfirm(start, end)
-                }) {
-                    Text(text = stringResource(R.string.confirm), color = SaltTheme.colors.highlight)
-                }
+                TextButton(
+                    onClick = {
+                        val start = LocalDate.of(startYear, startMonth, startDay)
+                            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val end = LocalDate.of(endYear, endMonth, endDay)
+                            .atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        onConfirm(start, end)
+                    },
+                    text = stringResource(R.string.confirm),
+                    textColor = SaltTheme.colors.highlight,
+                    backgroundColor = Color.Transparent
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -779,22 +765,6 @@ fun ModernDateRangePicker(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun DragHandle() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = 32.dp, height = 4.dp)
-                .background(SaltTheme.colors.subText.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
-        )
     }
 }
 

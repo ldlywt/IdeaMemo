@@ -16,3 +16,6 @@ local.properties
 /keystore/
 /keystore/noteKeyStore.jks
 /.idea/
+# Kotlin 增量编译缓存与本地 AI 工作区数据（不入库）
+/.kotlin/
+/.workbuddy/

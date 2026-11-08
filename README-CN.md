@@ -22,7 +22,7 @@
 ### 📝 记录与整理
 - **卡片笔记**：图文混排，支持可选**笔记标题**，正文以 Markdown 渲染。
 - **标签系统**：以 #TAG 索引笔记，独立的标签页 + 首页可点击的标签行。
-- **搜索**：首页顶部搜索框，全文检索。
+- **搜索**：首页顶部搜索框，全文检索，并保存搜索历史（流式胶囊展示，最多 4 行）。
 - **相册模式**：小红书风格瀑布流，集中浏览带图片的笔记。
 - **多选操作**：首页多选后批量移入回收站。
 - **回收站**：删除的笔记先进入回收站，可恢复、彻底删除或一键清空。
@@ -57,12 +57,25 @@
 - Ktor（客户端 + 服务端，用于局域网分享）、sardine-android（WebDAV）、zt-zip
 - AndroidX Biometric、WorkManager、SplashScreen
 
+## 🆕 3.1 更新内容
+- 笔记支持**标题**，并在卡片、预览、分享、回顾等页面展示时间。
+- 新增**回收站**：删除的笔记默认保留在回收站，可恢复、彻底删除或一键清空。
+- 全局**正文字号**四档可调，新增**自动识别链接**开关。
+- 数据导入导出增强：Markdown / TXT 导入导出（记住上次导出位置）、HTML 备份还原。
+- 系统主题跟随 DayNight；首页增加退出确认、批量删除等细节优化。
+
 ## ✈️ 下载
 
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
      alt="Get it on Google Play"
      height="80">](https://play.google.com/store/apps/details?id=com.ldlywt.note)
 [<img src="https://s1.ax1x.com/2023/01/12/pSu1a36.png" alt="Get it on GitHub" height="80">](https://github.com/ldlywt/IdeaMemo/releases/latest)     
+
+
+## 🧑‍💻 从源码构建
+- 安装 **Android Studio**（JDK 17 已内置），拉取本仓库后直接运行 `app` 模块即可。
+- 命令行：`./gradlew :app:assembleDebug`（Windows 使用 `gradlew.bat`），编译要求 JDK 17、compileSdk 36（Android 16）。
+- 最低支持 **Android 8.0（API 26）**。
 
 ## 🤝 贡献指南
 欢迎贡献！请按照以下步骤进行贡献：

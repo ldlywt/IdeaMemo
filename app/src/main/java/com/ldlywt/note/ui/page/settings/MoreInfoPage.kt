@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,8 +21,6 @@ import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,11 +30,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.res.ResourcesCompat
@@ -55,27 +55,35 @@ import com.moriafly.salt.ui.SaltTheme
 import com.moriafly.salt.ui.Text
 import com.moriafly.salt.ui.TitleBar
 import com.moriafly.salt.ui.UnstableSaltApi
+import com.moriafly.salt.ui.dialog.BasicDialog
 
 @Composable
 fun ContactDialog(block: () -> Unit) {
-    AlertDialog(
-        containerColor = SaltTheme.colors.background,
-        onDismissRequest = { },
-        title = {
-            androidx.compose.material3.Text(
-                stringResource(R.string.contact),
+    BasicDialog(onDismissRequest = { }) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = SaltTheme.dimens.outerHorizontalPadding,
+                    vertical = SaltTheme.dimens.outerVerticalPadding
+                )
+        ) {
+            Text(
+                text = stringResource(R.string.contact),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
                 color = SaltTheme.colors.text
             )
-        },
-        text = { AboutComposeScreen() },
-        confirmButton = {
-            Button(onClick = {
-                block()
-            }) {
-                Text("OK", color = Color.White)
-            }
+            Spacer(modifier = Modifier.height(SaltTheme.dimens.innerVerticalPadding))
+            AboutComposeScreen()
+            Spacer(modifier = Modifier.height(SaltTheme.dimens.innerVerticalPadding))
+            com.moriafly.salt.ui.TextButton(
+                onClick = block,
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.ok)
+            )
         }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, UnstableSaltApi::class)

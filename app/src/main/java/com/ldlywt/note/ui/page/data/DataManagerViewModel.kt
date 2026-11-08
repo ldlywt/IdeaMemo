@@ -85,5 +85,7 @@ class DataManagerViewModel @Inject constructor(
             tag.count = count
             tagNoteRepo.updateTag(tag)
         }
+        // 对应有效笔记数为 0 的标签直接删除
+        tagNoteRepo.recountAllTagsAndCleanup()
     }
 }

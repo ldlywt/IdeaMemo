@@ -83,6 +83,8 @@ class TagNoteRepo(
     @Transaction
     fun insertOrUpdate(card: Note) {
         val tagList = TopicUtils.getTopicListByString(card.content)
+        // REPLACE 插入会让 Room 删除旧笔记行并级联删除旧标签关联，先记录旧标签用于修正计数
+        val oldTagNames = if (card.noteId == 0L) emptyList() else noteTagCrossRefDao.queryTagNamesByNoteId(card.noteId)
 //        if (card.locationInfo.isNullOrBlank()) {
 //            val pair = CityRegexUtils.getCityByString(card.content.trim())
 //            card.locationInfo = pair?.second
@@ -95,12 +97,13 @@ class TagNoteRepo(
             val tempTag = Tag(tag = "")
             tagDao.insertOrUpdate(tempTag)
             noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = tempTag.tag))
-            return
+        } else {
+            tagList.forEach {
+                tagDao.insertOrUpdate(it)
+                noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = it.tag))
+            }
         }
-        tagList.forEach {
-            tagDao.insertOrUpdate(it)
-            noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = it.tag))
-        }
+        recountAndCleanupTags(oldTagNames + tagList.map { it.tag } + (if (tagList.isEmpty()) listOf("") else emptyList()))
     }
 
     /**
@@ -111,6 +114,8 @@ class TagNoteRepo(
     @Query("")
     @Transaction
     fun insertWithExplicitTags(card: Note, explicitTags: List<Tag>) {
+        // REPLACE 插入会级联删除旧标签关联，先记录旧标签用于修正计数
+        val oldTagNames = if (card.noteId == 0L) emptyList() else noteTagCrossRefDao.queryTagNamesByNoteId(card.noteId)
         val noteId = noteDao.insert(card)
         val allTags = (TopicUtils.getTopicListByString(card.content) + explicitTags)
             .filter { it.tag.isNotBlank() }
@@ -119,19 +124,21 @@ class TagNoteRepo(
             val tempTag = Tag(tag = "")
             tagDao.insertOrUpdate(tempTag)
             noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = tempTag.tag))
-            return
+        } else {
+            allTags.forEach {
+                tagDao.insertOrUpdate(it)
+                noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = it.tag))
+            }
         }
-        allTags.forEach {
-            tagDao.insertOrUpdate(it)
-            noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tag = it.tag))
-        }
+        recountAndCleanupTags(oldTagNames + allTags.map { it.tag } + (if (allTags.isEmpty()) listOf("") else emptyList()))
     }
 
     fun queryDeletedMemosFlow(): Flow<List<NoteShowBean>> = tagNoteDao.getDeletedNotes()
 
     /**
-     * Moves a note to the recycle bin without touching its tags, so that the
-     * tag relations can be restored together with the note.
+     * Moves a note to the recycle bin without dropping its tag relations, so that
+     * the note can be restored afterwards. If a tag's live note count drops to 0
+     * the tag row is deleted; a later restore rebuilds it from the note content.
      */
     @Query("")
     @Transaction
@@ -139,14 +146,33 @@ class TagNoteRepo(
         card.isDeleted = true
         card.updateTime = System.currentTimeMillis()
         noteDao.update(card)
+        recountAndCleanupTags(tags.map { it.tag })
     }
 
+    /**
+     * Restores a note from the recycle bin and rebuilds any tag rows (and cross
+     * references) that were deleted while the note was in the trash.
+     */
     @Query("")
     @Transaction
     fun restoreNote(card: Note) {
         card.isDeleted = false
         card.updateTime = System.currentTimeMillis()
         noteDao.update(card)
+        val tagNames = (noteTagCrossRefDao.queryTagNamesByNoteId(card.noteId) +
+                TopicUtils.getTopicListByString(card.content).map { it.tag })
+            .filter { it.isNotBlank() }
+            .distinct()
+        // 先补齐被级联删除的标签行，否则关联记录会因外键约束插入失败
+        tagNames.forEach { tagName ->
+            if (tagDao.getByName(tagName) == null) {
+                tagDao.insert(Tag(tag = tagName))
+            }
+        }
+        tagNames.forEach { tagName ->
+            noteTagCrossRefDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId = card.noteId, tag = tagName))
+        }
+        recountAndCleanupTags(tagNames)
     }
 
     @Query("")
@@ -154,10 +180,37 @@ class TagNoteRepo(
     fun deleteNotePermanently(card: Note, tags: List<Tag>) {
         noteDao.delete(card)
         tags.forEach {
-            tagDao.deleteOrUpdate(it)
             noteTagCrossRefDao.deleteCrossRef(NoteTagCrossRef(noteId = card.noteId, tag = it.tag))
         }
+        // 笔记被彻底删除后，若某个标签不再被任何有效笔记引用则直接删除该标签
+        recountAndCleanupTags(tags.map { it.tag })
         deleteUnreferencedAttachmentFiles(card.attachments)
+    }
+
+    /**
+     * 把一批标签的冗余计数同步为实际引用它们的有效（未删除）笔记数，
+     * 计数为 0 的标签直接删除（关联记录随 Tag 外键级联清除）。
+     */
+    private fun recountAndCleanupTags(tagNames: Collection<String>) {
+        tagNames.distinct().forEach { tagName ->
+            val oldTag = tagDao.getByName(tagName) ?: return@forEach
+            val liveCount = tagNoteDao.countNoteListWithByTag(tagName)
+            if (liveCount <= 0) {
+                tagDao.delete(oldTag)
+            } else if (oldTag.count != liveCount) {
+                oldTag.count = liveCount
+                tagDao.update(oldTag)
+            }
+        }
+    }
+
+    /**
+     * 重建全库标签计数，并把计数为 0 的标签删掉，用于手动修复数据。
+     */
+    fun recountAllTagsAndCleanup() {
+        queryAllTagList().forEach { tag ->
+            recountAndCleanupTags(listOf(tag.tag))
+        }
     }
 
     /**

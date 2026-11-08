@@ -52,7 +52,7 @@ interface TagDao {
     fun queryAllTagList(): List<Tag>
 
     @Query("SELECT * FROM Tag WHERE tag =:name LIMIT 1")
-    fun getByName(name: String): Tag
+    fun getByName(name: String): Tag?
 
     @Query("select count(*) from Tag")
     fun getCount(): Int

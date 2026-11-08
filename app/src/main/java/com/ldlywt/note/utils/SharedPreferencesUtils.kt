@@ -9,9 +9,16 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.ldlywt.note.App
 import com.ldlywt.note.ui.page.SortTime
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 private const val SHARED_PREFERENCES_STORE_NAME = "SHARED_PREFERENCES"
 private val Context.sharedDataStore by preferencesDataStore(name = SHARED_PREFERENCES_STORE_NAME)
+
+/** 搜索历史按换行符分隔保存，搜索关键词里几乎不会出现换行。 */
+private const val SEARCH_HISTORY_DELIMITER = "\n"
+
+/** 最多保留多少条搜索历史。 */
+private const val SEARCH_HISTORY_MAX = 20
 
 object SharedPreferencesUtils {
     private object PreferencesKeys {
@@ -23,6 +30,7 @@ object SharedPreferencesUtils {
         val DAV_SERVER_URL = stringPreferencesKey("dav_server_url")
         val DAV_USER_NAME = stringPreferencesKey("dav_user_name")
         val DAV_PASSWORD = stringPreferencesKey("dav_password")
+        val SEARCH_HISTORY = stringPreferencesKey("search_history")
     }
 
     private val sharedPreferences = App.instance.sharedDataStore
@@ -40,6 +48,15 @@ object SharedPreferencesUtils {
     val davServerUrl: Flow<String?> = sharedPreferences.getString(PreferencesKeys.DAV_SERVER_URL, "https://dav.jianguoyun.com/dav/")
     val davUserName: Flow<String?> = sharedPreferences.getString(PreferencesKeys.DAV_USER_NAME, null)
     val davPassword: Flow<String?> = sharedPreferences.getString(PreferencesKeys.DAV_PASSWORD, null)
+
+    /** Saved search keywords, newest first. */
+    val searchHistory: Flow<List<String>> =
+        sharedPreferences.getString(PreferencesKeys.SEARCH_HISTORY, null).map { saved ->
+            saved?.split(SEARCH_HISTORY_DELIMITER)
+                ?.filter { it.isNotBlank() }
+                ?.take(SEARCH_HISTORY_MAX)
+                ?: emptyList()
+        }
 
 
 
@@ -89,6 +106,14 @@ object SharedPreferencesUtils {
     }
     suspend fun updateUseSafe(use: Boolean) {
         updatePreference(PreferencesKeys.USE_SAFE, use)
+    }
+
+    suspend fun updateSearchHistory(history: List<String>) {
+        val saved = history
+            .filter { it.isNotBlank() }
+            .take(SEARCH_HISTORY_MAX)
+            .joinToString(SEARCH_HISTORY_DELIMITER)
+        updatePreference(PreferencesKeys.SEARCH_HISTORY, saved.ifBlank { null })
     }
 
 

@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,10 +21,7 @@ import androidx.compose.material.icons.outlined.FormatColorText
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,7 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -46,6 +44,7 @@ import com.ldlywt.note.R
 import com.ldlywt.note.backup.model.DavData
 import com.ldlywt.note.component.LoadingComponent
 import com.ldlywt.note.component.RYDialog
+import com.ldlywt.note.component.SaltDragHandle
 import com.ldlywt.note.ui.page.LocalMemosState
 import com.ldlywt.note.ui.page.router.debouncedPopBackStack
 import com.ldlywt.note.ui.page.settings.SettingsBean
@@ -71,6 +70,8 @@ import com.moriafly.salt.ui.ItemSwitcher
 import com.moriafly.salt.ui.ItemTitle
 import com.moriafly.salt.ui.RoundedColumn
 import com.moriafly.salt.ui.SaltTheme
+import com.moriafly.salt.ui.Text as SaltText
+import com.moriafly.salt.ui.TextButton as SaltTextButton
 import com.moriafly.salt.ui.TitleBar
 import com.moriafly.salt.ui.UnstableSaltApi
 import com.moriafly.salt.ui.dialog.BasicDialog
@@ -344,15 +345,26 @@ fun DataManagerPage(
             visible = true,
             properties = DialogProperties(),
             title = {
-                Text(text = stringResource(R.string.data_help_title))
+                SaltText(
+                    text = stringResource(R.string.data_help_title),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SaltTheme.colors.text
+                )
             },
             text = {
-                Text(text = stringResource(R.string.data_help_message))
+                SaltText(
+                    text = stringResource(R.string.data_help_message),
+                    style = SaltTheme.textStyles.paragraph,
+                    color = SaltTheme.colors.subText
+                )
             },
             confirmButton = {
-                TextButton(onClick = { showHelpDialog = false }) {
-                    Text(stringResource(R.string.confirm))
-                }
+                SaltTextButton(
+                    onClick = { showHelpDialog = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.confirm)
+                )
             },
         )
     }
@@ -368,28 +380,35 @@ fun ChoseFolderDialog(
         visible = visible,
         properties = DialogProperties(),
         title = {
-            Text(text = R.string.choose_folder.str)
+            SaltText(
+                text = stringResource(R.string.choose_folder),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = SaltTheme.colors.text
+            )
         },
         text = {
-            Text(text = R.string.notes_will_be.str)
+            SaltText(
+                text = stringResource(R.string.notes_will_be),
+                style = SaltTheme.textStyles.paragraph,
+                color = SaltTheme.colors.subText
+            )
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirmRequest()
-                }
-            ) {
-                Text(stringResource(R.string.choose))
-            }
+            SaltTextButton(
+                onClick = onConfirmRequest,
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.choose)
+            )
         },
         dismissButton = {
-            TextButton(
-                onClick = {
-                    onDismissRequest()
-                }
-            ) {
-                Text(stringResource(R.string.cancel))
-            }
+            SaltTextButton(
+                onClick = onDismissRequest,
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.cancel),
+                textColor = SaltTheme.colors.subText,
+                backgroundColor = SaltTheme.colors.subBackground
+            )
         },
     )
 }
@@ -404,18 +423,27 @@ fun WebRestoreBottomSheet(
 ) {
 
     if (show) {
-        ModalBottomSheet(onDismissRequest = onDismissRequest) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                LazyColumn {
-                    items(list.size) {
-                        ListItem(
-                            headlineContent = { Text(list[it].displayName) },
-                            modifier = Modifier.clickable {
-                                onConfirmRequest(list[it])
-                            })
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            containerColor = SaltTheme.colors.background,
+            dragHandle = { SaltDragHandle() }
+        ) {
+            LazyColumn(Modifier.fillMaxWidth()) {
+                items(list.size) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onConfirmRequest(list[it]) }
+                            .padding(
+                                horizontal = SaltTheme.dimens.outerHorizontalPadding,
+                                vertical = SaltTheme.dimens.innerVerticalPadding
+                            )
+                    ) {
+                        SaltText(text = list[it].displayName)
                     }
                 }
             }
+            Spacer(Modifier.height(32.dp))
         }
     }
 }

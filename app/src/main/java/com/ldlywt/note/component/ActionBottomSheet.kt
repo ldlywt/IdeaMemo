@@ -1,14 +1,10 @@
 package com.ldlywt.note.component
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +26,7 @@ import com.ldlywt.note.utils.lunchIo
 import com.ldlywt.note.utils.str
 import com.ldlywt.note.utils.toast
 import com.ldlywt.note.utils.withIO
+import com.moriafly.salt.ui.Item
 import com.moriafly.salt.ui.SaltTheme
 import kotlinx.coroutines.launch
 
@@ -65,66 +62,62 @@ fun ActionBottomSheet(
     if (show) {
         ModalBottomSheet(
             containerColor = SaltTheme.colors.popup,
-            onDismissRequest = onDismissRequest, sheetState = bottomSheetState
+            onDismissRequest = onDismissRequest,
+            sheetState = bottomSheetState,
+            dragHandle = { SaltDragHandle() }
         ) {
-            Row(
-                Modifier
-                    .fillMaxWidth(), horizontalArrangement = Arrangement.Center
-            ) {
-                LazyColumn {
-//                    item {
-//                        TextButton(onClick = { /*TODO*/ }, modifier = Modifier.fillMaxWidth()) {
-//                            Text(text = R.string.pin.str, style = MaterialTheme.typography.titleMedium)
-//                        }
-//                    }
-
-                    item {
-                        TextButton(onClick = {
+            LazyColumn(Modifier.fillMaxWidth()) {
+                item {
+                    Item(
+                        onClick = {
                             onCommentClick?.invoke(noteShowBean)
                             onDismissRequest()
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text(text = R.string.comment.str, style = SaltTheme.textStyles.paragraph)
-                        }
-                    }
+                        },
+                        text = stringResource(R.string.comment)
+                    )
+                }
 
-                    item {
-                        TextButton(onClick = {
+                item {
+                    Item(
+                        onClick = {
                             copy(noteShowBean.note)
                             onDismissRequest()
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text(text = R.string.copy.str, style = SaltTheme.textStyles.paragraph)
-                        }
-                    }
+                        },
+                        text = stringResource(R.string.copy)
+                    )
+                }
 
-                    item {
-                        TextButton(onClick = {
+                item {
+                    Item(
+                        onClick = {
                             navHostController.navigate(Screen.Share(noteShowBean.note.noteId))
                             onDismissRequest()
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text(text = R.string.share.str, style = SaltTheme.textStyles.paragraph)
-                        }
-                    }
+                        },
+                        text = stringResource(R.string.share)
+                    )
+                }
 
-                    item {
-                        TextButton(onClick = {
+                item {
+                    Item(
+                        onClick = {
                             showDeleteConfirm = true
                             onDismissRequest()
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text(text = R.string.delete.str, style = SaltTheme.textStyles.paragraph)
-                        }
-                    }
-                    item {
-                        TextButton(onClick = {
+                        },
+                        text = stringResource(R.string.delete)
+                    )
+                }
+                item {
+                    Item(
+                        onClick = {
                             scope.launch {
                                 withIO {
                                     exportMarkDownLauncher.launch(null)
                                 }
                                 onDismissRequest()
                             }
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text(text = R.string.export.str, style = SaltTheme.textStyles.paragraph)
-                        }
-                    }
+                        },
+                        text = stringResource(R.string.export)
+                    )
                 }
             }
         }
