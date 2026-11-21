@@ -54,6 +54,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.component.RYScaffold
@@ -88,7 +89,8 @@ fun SharePage(noteId: Long, navController: NavHostController) {
         lunchIo {
             val queriedNote = noteViewModel.getNoteShowBeanById(noteId)
             noteShowBean.value = queriedNote
-            totalImages.value = queriedNote?.note?.attachments?.size ?: 0
+            totalImages.value = queriedNote?.note?.attachments
+                ?.count { it.type == Attachment.Type.IMAGE } ?: 0
             if (totalImages.value == 0) {
                 imagesLoaded.value = true
             } else {
@@ -201,7 +203,7 @@ fun SharePage(noteId: Long, navController: NavHostController) {
                                             modifier = Modifier.fillMaxWidth(), // 确保MarkdownText填充可用宽度
                                             autoLink = autoLinkEnabled,
                                         )
-                                        if (note.attachments.isNotEmpty()) {
+                                        if (note.attachments.any { it.type == Attachment.Type.IMAGE }) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                             // 自定义图片显示组件，支持图片加载完成通知
                                             CustomImageCard(
@@ -240,10 +242,13 @@ fun SharePage(noteId: Long, navController: NavHostController) {
 @Composable
 fun CustomImageCard(note: Note, onImageLoaded: () -> Unit) {
     val context = LocalContext.current
-    if (note.attachments.size == 1) {
+    val images = note.attachments.filter { it.type == Attachment.Type.IMAGE }
+    if (images.isEmpty()) return
+
+    if (images.size == 1) {
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(note.attachments[0].path)
+                .data(images[0].path)
                 .bitmapConfig(Bitmap.Config.ARGB_8888) // 强制使用软件位图
                 .allowHardware(false) // 禁用硬件位图
                 .allowRgb565(false) // 禁用RGB565格式
@@ -263,7 +268,8 @@ fun CustomImageCard(note: Note, onImageLoaded: () -> Unit) {
                 .padding(end = 15.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            note.attachments.forEachIndexed { index, attachment ->
+            note.attachments.filter { it.type == Attachment.Type.IMAGE }
+                .forEachIndexed { index, attachment ->
                 val path: String = attachment.path
                 AsyncImage(
                     model = ImageRequest.Builder(context)

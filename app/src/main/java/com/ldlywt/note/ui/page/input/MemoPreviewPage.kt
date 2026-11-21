@@ -1,6 +1,7 @@
 package com.ldlywt.note.ui.page.input
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -42,6 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
+import com.ldlywt.note.component.AudioPlayback
+import com.ldlywt.note.component.AudioPlayerCard
 import com.ldlywt.note.ui.page.LocalMemosViewModel
 import com.ldlywt.note.ui.page.router.LocalRootNavController
 import com.ldlywt.note.ui.page.router.Screen
@@ -63,6 +68,10 @@ fun MemoPreviewPage(memoId: Long) {
     val memo by remember(memoId) { memosViewModel.getNoteShowBeanByIdFlow(memoId) }.collectAsState(initial = null)
     val navController = LocalRootNavController.current
     val autoLinkEnabled by SettingsPreferences.autoLinkEnabled.collectAsState(true)
+
+    DisposableEffect(Unit) {
+        onDispose { AudioPlayback.stop() }
+    }
 
     if (memo == null) {
         return
@@ -126,8 +135,10 @@ fun MemoPreviewPage(memoId: Long) {
                 .verticalScroll(rememberScrollState())
         ) {
             val attachments = memo?.note?.attachments ?: emptyList()
-            if (attachments.isNotEmpty()) {
-                val pagerState = rememberPagerState(pageCount = { attachments.size })
+            val images = attachments.filter { it.type == Attachment.Type.IMAGE }
+            val audios = attachments.filter { it.type == Attachment.Type.AUDIO }
+            if (images.isNotEmpty()) {
+                val pagerState = rememberPagerState(pageCount = { images.size })
                 val configuration = LocalConfiguration.current
                 val screenHeight = configuration.screenHeightDp.dp
                 
@@ -139,16 +150,16 @@ fun MemoPreviewPage(memoId: Long) {
                         modifier = Modifier.fillMaxSize()
                     ) { page ->
                         AsyncImage(
-                            model = attachments[page].path,
+                            model = images[page].path,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     }
                     
-                    if (attachments.size > 1) {
+                    if (images.size > 1) {
                         Text(
-                            text = "${pagerState.currentPage + 1}/${attachments.size}",
+                            text = "${pagerState.currentPage + 1}/${images.size}",
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(12.dp)
@@ -156,6 +167,22 @@ fun MemoPreviewPage(memoId: Long) {
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                             color = Color.White,
                             fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+
+            if (audios.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    audios.forEach { attachment ->
+                        AudioPlayerCard(
+                            attachment = attachment,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }

@@ -235,7 +235,7 @@ fun ExploreMemoContent(
                 },
                 autoLink = autoLink
             )
-            if (note.attachments.isNotEmpty()) {
+            if (note.attachments.any { it.type == com.ldlywt.note.bean.Attachment.Type.IMAGE }) {
                 Spacer(modifier = Modifier.height(12.dp))
                 ImageCard(note, navHostController)
             }

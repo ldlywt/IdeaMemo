@@ -188,4 +188,14 @@
     <string name="auto_link_switcher_sub">將手機號、電子郵件和網址變為可點擊連結</string>
     <string name="title_hint">標題（可選）</string>
     <string name="gallery_empty_hint">還沒有帶圖片的筆記</string>
+    <string name="record_audio">錄音</string>
+    <string name="recording">正在錄音</string>
+    <string name="record_finish">完成錄音</string>
+    <string name="record_cancel">取消錄音</string>
+    <string name="record_permission_denied">需要麥克風權限才能錄音</string>
+    <string name="record_failed">錄音失敗，請重試</string>
+    <string name="record_too_short">錄音時間太短</string>
+    <string name="voice_note">語音</string>
+    <string name="play_audio">播放</string>
+    <string name="pause_audio">暫停</string>
 </resources>

@@ -17,22 +17,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.ui.page.router.Screen
 
 @Composable
 fun ImageCard(note: Note, navHostController: NavHostController?) {
+    val images = note.attachments.filter { it.type == Attachment.Type.IMAGE }
+    if (images.isEmpty()) return
 
-    if (note.attachments.size == 1) {
+    if (images.size == 1) {
         AsyncImage(
-            model = note.attachments[0].path,
+            model = images[0].path,
             contentDescription = null,
             modifier = Modifier
                 .width(160.dp)
                 .height(160.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable {
-                    navHostController?.navigate(Screen.PictureDisplay(arrayListOf(note.attachments[0].path), 0,  listOf(note.createTime )))
+                    navHostController?.navigate(Screen.PictureDisplay(arrayListOf(images[0].path), 0,  listOf(note.createTime )))
                 },
             contentScale = ContentScale.Crop
         )
@@ -41,8 +44,8 @@ fun ImageCard(note: Note, navHostController: NavHostController?) {
             modifier = Modifier.height(90.dp).padding(end = 15.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(count = note.attachments.size, key = { index -> note.attachments[index].path }) { index ->
-                val path: String = note.attachments[index].path
+            items(count = images.size, key = { index -> images[index].path }) { index ->
+                val path: String = images[index].path
                 AsyncImage(
                     model = path,
                     contentDescription = null,
@@ -52,7 +55,7 @@ fun ImageCard(note: Note, navHostController: NavHostController?) {
                         .zIndex(1f)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
-                            navHostController?.navigate(Screen.PictureDisplay(note.attachments.map { it.path }, index,  listOf(note.createTime )))
+                            navHostController?.navigate(Screen.PictureDisplay(images.map { it.path }, index,  listOf(note.createTime )))
                         },
                     contentScale = ContentScale.Crop
                 )

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.ui.page.router.Screen
@@ -87,7 +88,7 @@ fun CardCalender(
                 autoLink = autoLinkEnabled,
             )
             
-            if (note.attachments.isNotEmpty()) {
+            if (note.attachments.any { it.type == Attachment.Type.IMAGE }) {
                 Spacer(modifier = Modifier.height(8.dp))
                 CalenderImageCard(note, navHostController)
             }
@@ -102,17 +103,20 @@ fun CardCalender(
 
 @Composable
 fun CalenderImageCard(note: Note, navHostController: NavHostController?) {
-    if (note.attachments.size == 1) {
+    val images = note.attachments.filter { it.type == Attachment.Type.IMAGE }
+    if (images.isEmpty()) return
+
+    if (images.size == 1) {
         Box(
             modifier = Modifier
                 .size(80.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable {
-                    navHostController?.navigate(Screen.PictureDisplay(arrayListOf(note.attachments[0].path), 0, listOf(note.createTime)))
+                    navHostController?.navigate(Screen.PictureDisplay(arrayListOf(images[0].path), 0, listOf(note.createTime)))
                 }
         ) {
             AsyncImage(
-                model = note.attachments[0].path,
+                model = images[0].path,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -123,7 +127,7 @@ fun CalenderImageCard(note: Note, navHostController: NavHostController?) {
             modifier = Modifier.height(60.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            itemsIndexed(items = note.attachments, key = { _, attachment -> attachment.path }) { index, attachment ->
+            itemsIndexed(items = images, key = { _, attachment -> attachment.path }) { index, attachment ->
                 AsyncImage(
                     model = attachment.path,
                     contentDescription = null,
@@ -132,7 +136,7 @@ fun CalenderImageCard(note: Note, navHostController: NavHostController?) {
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
-                            navHostController?.navigate(Screen.PictureDisplay(note.attachments.map { it.path }, index, listOf(note.createTime)))
+                            navHostController?.navigate(Screen.PictureDisplay(images.map { it.path }, index, listOf(note.createTime)))
                         },
                     contentScale = ContentScale.Crop
                 )

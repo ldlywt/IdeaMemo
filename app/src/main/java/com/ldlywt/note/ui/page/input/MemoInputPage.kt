@@ -2,6 +2,7 @@ package com.ldlywt.note.ui.page.input
 
 import android.content.ActivityNotFoundException
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.BottomAppBar
@@ -40,6 +42,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +57,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +68,10 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
+import com.ldlywt.note.component.AudioPlayback
+import com.ldlywt.note.component.RecordingBar
+import com.ldlywt.note.component.rememberAudioRecorderState
 import com.ldlywt.note.ui.page.LocalMemosState
 import com.ldlywt.note.ui.page.LocalMemosViewModel
 import com.ldlywt.note.ui.page.LocalTags
@@ -113,6 +121,37 @@ fun MemoInputPage(
     val localDate = Instant.ofEpochMilli(memo?.note?.createTime ?: System.currentTimeMillis())
         .atZone(ZoneId.systemDefault()).toLocalDate()
     val focusManager = LocalFocusManager.current
+    val softwareKeyboardController = LocalSoftwareKeyboardController.current
+
+    val recordState = rememberAudioRecorderState(
+        onRecorded = { attachment -> memoInputViewModel.uploadAttachments.add(attachment) },
+        onError = {
+            coroutineScope.launch {
+                snackbarState.showSnackbar(context.getString(R.string.record_failed))
+            }
+        },
+        onPermissionDenied = {
+            coroutineScope.launch {
+                snackbarState.showSnackbar(context.getString(R.string.record_permission_denied))
+            }
+        }
+    )
+
+    LaunchedEffect(recordState.isRecording) {
+        if (recordState.isRecording) {
+            focusRequester.freeFocus()
+            focusManager.clearFocus()
+            softwareKeyboardController?.hide()
+        }
+    }
+
+    BackHandler(enabled = recordState.isRecording) {
+        recordState.cancel()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { AudioPlayback.stop() }
+    }
 
     fun uploadImage(uri: Uri) = coroutineScope.launch {
         handlePickFiles(setOf(uri)) {
@@ -138,6 +177,7 @@ fun MemoInputPage(
     }
 
     fun submit() = coroutineScope.launch {
+        AudioPlayback.stop()
         focusRequester.freeFocus()
         focusManager.clearFocus()
         memo?.note?.apply {
@@ -170,106 +210,125 @@ fun MemoInputPage(
             )
         }, bottomBar = {
             BottomAppBar(containerColor = SaltTheme.colors.background) {
-                if (tagList.isEmpty()) {
-                    IconButton(onClick = {
-                        text = text.copy(
-                            text.text.replaceRange(text.selection.min, text.selection.max, "#"),
-                            TextRange(text.selection.min + 1)
-                        )
-                    }) {
-                        Icon(
-                            Icons.Outlined.Tag,
-                            contentDescription = R.string.tag.str,
-                            tint = SaltTheme.colors.text
-                        )
-                    }
+                if (recordState.isRecording) {
+                    RecordingBar(
+                        elapsedMs = recordState.elapsedMs,
+                        onCancel = { recordState.cancel() },
+                        onFinish = { recordState.finish() }
+                    )
                 } else {
-                    Box(modifier = Modifier.background(SaltTheme.colors.background)) {
-                        PopupMenu(
-                            expanded = tagMenuExpanded,
-                            onDismissRequest = { tagMenuExpanded = false },
-                            properties = PopupProperties(focusable = false)
-                        ) {
-                            tagList.forEach { tag ->
-                                PopupMenuItem(
-                                    onClick = {
-                                        val tagText = "${tag.tag} "
-                                        text = text.copy(
-                                            text.text.replaceRange(
-                                                text.selection.min, text.selection.max, tagText
-                                            ), TextRange(text.selection.min + tagText.length)
-                                        )
-                                        tagMenuExpanded = false
-                                    },
-                                    text = tag.tag
-                                )
-                            }
-                        }
-                        IconButton(onClick = { tagMenuExpanded = !tagMenuExpanded }) {
+                    if (tagList.isEmpty()) {
+                        IconButton(onClick = {
+                            text = text.copy(
+                                text.text.replaceRange(text.selection.min, text.selection.max, "#"),
+                                TextRange(text.selection.min + 1)
+                            )
+                        }) {
                             Icon(
                                 Icons.Outlined.Tag,
                                 contentDescription = R.string.tag.str,
                                 tint = SaltTheme.colors.text
                             )
                         }
-                    }
-                }
-
-                IconButton(onClick = {
-                    pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
-                }) {
-                    Icon(
-                        Icons.Outlined.Image,
-                        contentDescription = R.string.add_image.str,
-                        tint = SaltTheme.colors.text
-                    )
-                }
-
-                IconButton(onClick = {
-                    try {
-                        val imagesFolder = File(context.cacheDir, "capture_picture")
-                        if (!imagesFolder.exists()) {
-                            imagesFolder.mkdirs()
+                    } else {
+                        Box(modifier = Modifier.background(SaltTheme.colors.background)) {
+                            PopupMenu(
+                                expanded = tagMenuExpanded,
+                                onDismissRequest = { tagMenuExpanded = false },
+                                properties = PopupProperties(focusable = false)
+                            ) {
+                                tagList.forEach { tag ->
+                                    PopupMenuItem(
+                                        onClick = {
+                                            val tagText = "${tag.tag} "
+                                            text = text.copy(
+                                                text.text.replaceRange(
+                                                    text.selection.min, text.selection.max, tagText
+                                                ), TextRange(text.selection.min + tagText.length)
+                                            )
+                                            tagMenuExpanded = false
+                                        },
+                                        text = tag.tag
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { tagMenuExpanded = !tagMenuExpanded }) {
+                                Icon(
+                                    Icons.Outlined.Tag,
+                                    contentDescription = R.string.tag.str,
+                                    tint = SaltTheme.colors.text
+                                )
+                            }
                         }
-                        val file = File.createTempFile("capture_picture_", ".jpg", imagesFolder)
-                        val uri = FileProvider.getUriForFile(
-                            context,
-                            context.packageName + ".provider",
-                            file
+                    }
+
+                    IconButton(onClick = {
+                        pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                    }) {
+                        Icon(
+                            Icons.Outlined.Image,
+                            contentDescription = R.string.add_image.str,
+                            tint = SaltTheme.colors.text
                         )
-                        photoImageUri = uri
-                        takePhoto.launch(uri)
-                    } catch (e: ActivityNotFoundException) {
-                        coroutineScope.launch {
-                            snackbarState.showSnackbar(
-                                e.localizedMessage ?: "Unable to take picture."
-                            )
-                        }
                     }
-                }) {
-                    Icon(
-                        Icons.Outlined.PhotoCamera,
-                        contentDescription = R.string.take_photo.str,
-                        tint = SaltTheme.colors.text
+
+                    IconButton(onClick = {
+                        try {
+                            val imagesFolder = File(context.cacheDir, "capture_picture")
+                            if (!imagesFolder.exists()) {
+                                imagesFolder.mkdirs()
+                            }
+                            val file = File.createTempFile("capture_picture_", ".jpg", imagesFolder)
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                context.packageName + ".provider",
+                                file
+                            )
+                            photoImageUri = uri
+                            takePhoto.launch(uri)
+                        } catch (e: ActivityNotFoundException) {
+                            coroutineScope.launch {
+                                snackbarState.showSnackbar(
+                                    e.localizedMessage ?: "Unable to take picture."
+                                )
+                            }
+                        }
+                    }) {
+                        Icon(
+                            Icons.Outlined.PhotoCamera,
+                            contentDescription = R.string.take_photo.str,
+                            tint = SaltTheme.colors.text
+                        )
+                    }
+
+                    IconButton(onClick = { recordState.start() }) {
+                        Icon(
+                            Icons.Outlined.Mic,
+                            contentDescription = R.string.record_audio.str,
+                            tint = SaltTheme.colors.text
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = stringResource(R.string.stats_chars_unit, text.text.length),
+                        style = SaltTheme.textStyles.sub,
+                        color = SaltTheme.colors.subText,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(end = 8.dp)
                     )
-                }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text(
-                    text = stringResource(R.string.stats_chars_unit, text.text.length),
-                    style = SaltTheme.textStyles.sub,
-                    color = SaltTheme.colors.subText,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-
-                IconButton(enabled = text.text.isNotEmpty(), onClick = { submit() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = R.string.send.str,
-                        tint = SaltTheme.colors.text
-                    )
+                    IconButton(
+                        enabled = text.text.isNotEmpty() || memoInputViewModel.uploadAttachments.isNotEmpty(),
+                        onClick = { submit() }
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = R.string.send.str,
+                            tint = SaltTheme.colors.text
+                        )
+                    }
                 }
             }
         }, snackbarHost = {
@@ -328,17 +387,24 @@ fun MemoInputPage(
                 },
             )
 
-            if (memoInputViewModel.uploadAttachments.isNotEmpty()) {
+            if (!recordState.isRecording && memoInputViewModel.uploadAttachments.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier
                         .height(120.dp)
                         .padding(start = 15.dp, end = 15.dp, bottom = 15.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(memoInputViewModel.uploadAttachments.toList(), { it.path }) { resource ->
-                        InputImage(attachment = resource, isEdit = true, delete = {
-                            memoInputViewModel.deleteResource(it)
-                        })
+                        if (resource.type == Attachment.Type.AUDIO) {
+                            InputAudio(attachment = resource, isEdit = true, delete = {
+                                memoInputViewModel.deleteResource(it)
+                            })
+                        } else {
+                            InputImage(attachment = resource, isEdit = true, delete = {
+                                memoInputViewModel.deleteResource(it)
+                            })
+                        }
                     }
                 }
             }
@@ -350,7 +416,9 @@ fun MemoInputPage(
             memoInputViewModel.setAttachments(memo.note.attachments)
         }
         delay(300)
-        focusRequester.requestFocus()
+        if (!recordState.isRecording) {
+            focusRequester.requestFocus()
+        }
     }
 }
 

@@ -223,4 +223,14 @@
     <string name="auto_link_switcher_sub">将手机号、邮箱和网址变为可点击链接</string>
     <string name="title_hint">标题（可选）</string>
     <string name="gallery_empty_hint">还没有带图片的笔记</string>
+    <string name="record_audio">录音</string>
+    <string name="recording">正在录音</string>
+    <string name="record_finish">完成录音</string>
+    <string name="record_cancel">取消录音</string>
+    <string name="record_permission_denied">需要麦克风权限才能录音</string>
+    <string name="record_failed">录音失败，请重试</string>
+    <string name="record_too_short">录音时间太短</string>
+    <string name="voice_note">语音</string>
+    <string name="play_audio">播放</string>
+    <string name="pause_audio">暂停</string>
 </resources>

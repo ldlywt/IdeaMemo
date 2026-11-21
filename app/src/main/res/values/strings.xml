@@ -225,4 +225,14 @@
     <string name="auto_link_switcher_sub">Make phone numbers, emails and URLs clickable</string>
     <string name="title_hint">Title (optional)</string>
     <string name="gallery_empty_hint">No notes with pictures yet</string>
+    <string name="record_audio">Record audio</string>
+    <string name="recording">Recording</string>
+    <string name="record_finish">Finish recording</string>
+    <string name="record_cancel">Cancel recording</string>
+    <string name="record_permission_denied">Microphone permission is required to record audio</string>
+    <string name="record_failed">Recording failed, please try again</string>
+    <string name="record_too_short">Recording is too short</string>
+    <string name="voice_note">Voice</string>
+    <string name="play_audio">Play</string>
+    <string name="pause_audio">Pause</string>
 </resources>

@@ -45,6 +45,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.kizitonwose.calendar.core.yearMonth
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.ui.page.router.Screen
 import com.ldlywt.note.ui.page.home.clickable
@@ -73,9 +74,11 @@ fun GalleryPage(
             val localDate =
                 Instant.ofEpochMilli(noteShowBean.note.createTime).atZone(ZoneId.systemDefault())
                     .toLocalDate()
-            noteShowBean.note.attachments.forEach { attach ->
-                galleryList.add(GalleryItem(noteShowBean, attach.path, localDate))
-            }
+            noteShowBean.note.attachments
+                .filter { it.type == Attachment.Type.IMAGE }
+                .forEach { attach ->
+                    galleryList.add(GalleryItem(noteShowBean, attach.path, localDate))
+                }
         }
         val map: Map<String, List<GalleryItem>> =
             galleryList.groupBy { it.localDate.yearMonth.toString() }

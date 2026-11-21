@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.ui.page.router.Screen
 import com.ldlywt.note.utils.toTime
@@ -159,9 +161,22 @@ fun NoteCard(
                 }
             }
 
-            if (note.attachments.isNotEmpty()) {
+            if (note.attachments.any { it.type == Attachment.Type.IMAGE }) {
                 Spacer(modifier = Modifier.height(8.dp))
                 ImageCard(note, navHostController)
+            }
+
+            val audioAttachments = note.attachments.filter { it.type == Attachment.Type.AUDIO }
+            if (audioAttachments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    audioAttachments.forEach { attachment ->
+                        AudioPlayerCard(
+                            attachment = attachment,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(

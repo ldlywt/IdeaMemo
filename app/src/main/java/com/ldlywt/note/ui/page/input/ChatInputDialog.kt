@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Tag
@@ -68,13 +69,18 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.Note
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.bean.Tag
 import com.ldlywt.note.component.PIconButton
+import com.ldlywt.note.component.AudioPlayback
+import com.ldlywt.note.component.RecordingBar
+import com.ldlywt.note.component.rememberAudioRecorderState
 import com.ldlywt.note.ui.page.LocalMemosViewModel
 import com.ldlywt.note.ui.page.LocalTags
 import com.ldlywt.note.utils.handlePickFiles
+import com.ldlywt.note.utils.str
 import com.ldlywt.note.utils.toast
 import com.moriafly.salt.ui.SaltTheme
 import com.moriafly.salt.ui.UnstableSaltApi
@@ -105,12 +111,21 @@ fun ChatInputDialog(
     val memosViewModel = LocalMemosViewModel.current
     val memoInputViewModel = hiltViewModel<MemoInputViewModel>()
 
+    val recordState = rememberAudioRecorderState(
+        onRecorded = { attachment -> memoInputViewModel.uploadAttachments.add(attachment) },
+        onError = { toast(R.string.record_failed.str) },
+        onPermissionDenied = { toast(R.string.record_permission_denied.str) }
+    )
+
     var isFocused by remember { mutableStateOf(false) }
     val isActive by remember {
-        derivedStateOf { isShow || isFocused || text.text.isNotEmpty() || memoInputViewModel.uploadAttachments.isNotEmpty() }
+        derivedStateOf {
+            isShow || isFocused || text.text.isNotEmpty() ||
+                memoInputViewModel.uploadAttachments.isNotEmpty() || recordState.isRecording
+        }
     }
     val isInteracting by remember {
-        derivedStateOf { isShow || isFocused }
+        derivedStateOf { isShow || isFocused || recordState.isRecording }
     }
 
     val density = LocalDensity.current
@@ -122,11 +137,18 @@ fun ChatInputDialog(
     }
 
     LaunchedEffect(isImeVisible) {
-        if (lastImeVisible && !isImeVisible && isFocused) {
+        if (lastImeVisible && !isImeVisible && isFocused && !recordState.isRecording) {
             focusManager.clearFocus()
             dismiss()
         }
         lastImeVisible = isImeVisible
+    }
+
+    LaunchedEffect(recordState.isRecording) {
+        if (recordState.isRecording) {
+            focusManager.clearFocus()
+            softwareKeyboardController?.hide()
+        }
     }
 
     val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -152,6 +174,7 @@ fun ChatInputDialog(
     }
 
     fun submit() = coroutineScope.launch {
+        AudioPlayback.stop()
         val content = text.text
         if (content.isNotBlank() || memoInputViewModel.uploadAttachments.isNotEmpty()) {
             memosViewModel.insertOrUpdate(Note(content = content, attachments = memoInputViewModel.uploadAttachments.toList(), parentNoteId = parentNote?.note?.noteId))
@@ -164,7 +187,7 @@ fun ChatInputDialog(
     }
 
     LaunchedEffect(isShow) {
-        if (isShow) {
+        if (isShow && !recordState.isRecording) {
             focusRequester.requestFocus()
             softwareKeyboardController?.show()
         }
@@ -172,6 +195,10 @@ fun ChatInputDialog(
 
     // 处理返回键：一步到位清除焦点、隐藏键盘并收起状态
     BackHandler(enabled = isActive || isFocused) {
+        if (recordState.isRecording) {
+            recordState.cancel()
+            return@BackHandler
+        }
         focusManager.clearFocus()
         softwareKeyboardController?.hide()
         dismiss()
@@ -267,113 +294,131 @@ fun ChatInputDialog(
             }
         }
 
-        // 2. 输入框区域
-        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { it: TextFieldValue ->
-                    text = it
-                    // 标签自动提示逻辑
-                    val cursor = it.selection.start
-                    val textBefore = it.text.substring(0, cursor)
-                    val lastHash = textBefore.lastIndexOf('#')
-                    if (lastHash != -1) {
-                        val fragment = textBefore.substring(lastHash + 1)
-                        if (fragment.contains(" ") || fragment.contains("\n")) {
+        if (recordState.isRecording) {
+            RecordingBar(
+                elapsedMs = recordState.elapsedMs,
+                onCancel = { recordState.cancel() },
+                onFinish = { recordState.finish() }
+            )
+        } else {
+            // 2. 输入框区域
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { it: TextFieldValue ->
+                        text = it
+                        // 标签自动提示逻辑
+                        val cursor = it.selection.start
+                        val textBefore = it.text.substring(0, cursor)
+                        val lastHash = textBefore.lastIndexOf('#')
+                        if (lastHash != -1) {
+                            val fragment = textBefore.substring(lastHash + 1)
+                            if (fragment.contains(" ") || fragment.contains("\n")) {
+                                tagMenuExpanded = false
+                                tagSearchQuery = null
+                            } else {
+                                tagSearchQuery = fragment
+                                tagMenuExpanded = tagList.any { it.tag.contains(fragment, ignoreCase = true) }
+                            }
+                        } else {
                             tagMenuExpanded = false
                             tagSearchQuery = null
-                        } else {
-                            tagSearchQuery = fragment
-                            tagMenuExpanded = tagList.any { it.tag.contains(fragment, ignoreCase = true) }
                         }
-                    } else {
-                        tagMenuExpanded = false
-                        tagSearchQuery = null
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { isFocused = it.isFocused }
+                        .heightIn(min = 44.dp, max = 200.dp)
+                        .onPreviewKeyEvent {
+                            // 拦截返回键事件，一步到位关闭：在 KeyDown 时直接消费并执行关闭逻辑
+                            if (it.key == Key.Back) {
+                                if (isFocused || isActive) {
+                                    if (it.type == KeyEventType.KeyDown) {
+                                        focusManager.clearFocus()
+                                        softwareKeyboardController?.hide()
+                                        dismiss()
+                                    }
+                                    true
+                                } else false
+                            } else false
+                        },
+                    textStyle = SaltTheme.textStyles.paragraph.copy(fontSize = 15.sp),
+                    placeholder = { Text(stringResource(R.string.any_thoughts), color = SaltTheme.colors.subText, fontSize = 15.sp) },
+                    shape = RoundedCornerShape(6.dp), // 修改圆角为 6dp
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = SaltTheme.colors.subBackground,
+                        unfocusedContainerColor = SaltTheme.colors.subBackground,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = SaltTheme.colors.highlight,
+                        focusedTextColor = SaltTheme.colors.text,
+                        unfocusedTextColor = SaltTheme.colors.text
+                    ),
+                    maxLines = 10,
+                    keyboardOptions = keyboardOptions
+                )
+            }
+
+            // 3. 附件预览
+            if (isActive && memoInputViewModel.uploadAttachments.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier.height(80.dp).padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(memoInputViewModel.uploadAttachments.toList(), key = { it.path }) { resource ->
+                        if (resource.type == Attachment.Type.AUDIO) {
+                            InputAudio(attachment = resource, isEdit = true, delete = { pat ->
+                                memoInputViewModel.deleteResource(pat)
+                            })
+                        } else {
+                            InputImage(attachment = resource, isEdit = true, delete = { pat ->
+                                memoInputViewModel.deleteResource(pat)
+                            })
+                        }
                     }
-                },
+                }
+            }
+
+            // 4. 操作栏：默认始终展示核心按钮
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onFocusChanged { isFocused = it.isFocused }
-                    .heightIn(min = 44.dp, max = 200.dp)
-                    .onPreviewKeyEvent { 
-                        // 拦截返回键事件，一步到位关闭：在 KeyDown 时直接消费并执行关闭逻辑
-                        if (it.key == Key.Back) {
-                            if (isFocused || isActive) {
-                                if (it.type == KeyEventType.KeyDown) {
-                                    focusManager.clearFocus()
-                                    softwareKeyboardController?.hide()
-                                    dismiss()
-                                }
-                                true
-                            } else false
-                        } else false
-                    },
-                textStyle = SaltTheme.textStyles.paragraph.copy(fontSize = 15.sp),
-                placeholder = { Text(stringResource(R.string.any_thoughts), color = SaltTheme.colors.subText, fontSize = 15.sp) },
-                shape = RoundedCornerShape(6.dp), // 修改圆角为 6dp
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = SaltTheme.colors.subBackground,
-                    unfocusedContainerColor = SaltTheme.colors.subBackground,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = SaltTheme.colors.highlight,
-                    focusedTextColor = SaltTheme.colors.text,
-                    unfocusedTextColor = SaltTheme.colors.text
-                ),
-                maxLines = 10,
-                keyboardOptions = keyboardOptions
-            )
-        }
-
-        // 3. 附件预览
-        if (isActive && memoInputViewModel.uploadAttachments.isNotEmpty()) {
-            LazyRow(
-                modifier = Modifier.height(80.dp).padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(memoInputViewModel.uploadAttachments.toList(), key = { it.path }) { resource ->
-                    InputImage(attachment = resource, isEdit = true, delete = { pat ->
-                        memoInputViewModel.deleteResource(pat)
-                    })
-                }
-            }
-        }
-
-        // 4. 操作栏：默认始终展示核心按钮
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                // 核心功能按钮默认显示
-                TagButton(tagList)
-                PIconButton(imageVector = Icons.Outlined.Image, contentDescription = stringResource(R.string.add_image)) {
-                    pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                }
-                PIconButton(imageVector = Icons.Outlined.PhotoCamera, contentDescription = stringResource(R.string.take_photo)) {
-                    try {
-                        val imagesFolder = File(context.cacheDir, "capture_picture").apply { if (!exists()) mkdirs() }
-                        val file = File.createTempFile("capture_picture_", ".jpg", imagesFolder)
-                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                        photoImageUri = uri
-                        takePhoto.launch(uri)
-                    } catch (e: ActivityNotFoundException) {
-                        toast(e.localizedMessage ?: "Unable to take picture.")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // 核心功能按钮默认显示
+                    TagButton(tagList)
+                    PIconButton(imageVector = Icons.Outlined.Image, contentDescription = stringResource(R.string.add_image)) {
+                        pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                    PIconButton(imageVector = Icons.Outlined.PhotoCamera, contentDescription = stringResource(R.string.take_photo)) {
+                        try {
+                            val imagesFolder = File(context.cacheDir, "capture_picture").apply { if (!exists()) mkdirs() }
+                            val file = File.createTempFile("capture_picture_", ".jpg", imagesFolder)
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                            photoImageUri = uri
+                            takePhoto.launch(uri)
+                        } catch (e: ActivityNotFoundException) {
+                            toast(e.localizedMessage ?: "Unable to take picture.")
+                        }
+                    }
+                    PIconButton(imageVector = Icons.Outlined.Mic, contentDescription = stringResource(R.string.record_audio)) {
+                        recordState.start()
                     }
                 }
-            }
 
-            // 发送按钮
-            PIconButton(
-                imageVector = Icons.Outlined.Send,
-                contentDescription = stringResource(R.string.send),
-                tint = if (text.text.isNotEmpty() || memoInputViewModel.uploadAttachments.isNotEmpty()) SaltTheme.colors.highlight else SaltTheme.colors.subText,
-                onClick = { if (text.text.isNotEmpty() || memoInputViewModel.uploadAttachments.isNotEmpty()) submit() else focusRequester.requestFocus() }
-            )
+                // 发送按钮
+                PIconButton(
+                    imageVector = Icons.Outlined.Send,
+                    contentDescription = stringResource(R.string.send),
+                    tint = if (text.text.isNotEmpty() || memoInputViewModel.uploadAttachments.isNotEmpty()) SaltTheme.colors.highlight else SaltTheme.colors.subText,
+                    onClick = { if (text.text.isNotEmpty() || memoInputViewModel.uploadAttachments.isNotEmpty()) submit() else focusRequester.requestFocus() }
+                )
+            }
         }
     }
 }

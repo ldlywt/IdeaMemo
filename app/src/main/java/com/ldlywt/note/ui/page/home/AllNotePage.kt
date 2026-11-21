@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.ldlywt.note.R
+import com.ldlywt.note.bean.Attachment
 import com.ldlywt.note.bean.NoteShowBean
 import com.ldlywt.note.component.ConfirmDialog
 import com.ldlywt.note.component.EmptyComponent
@@ -257,7 +258,9 @@ fun AllNotePage(
                         Box(modifier = Modifier.weight(1f)) {
                             if (isGalleryMode) {
                                 val galleryNotes = remember(noteState.notes) {
-                                    noteState.notes.filter { it.note.attachments.isNotEmpty() }
+                                    noteState.notes.filter { note ->
+                                        note.note.attachments.any { it.type == Attachment.Type.IMAGE }
+                                    }
                                 }
                                 if (galleryNotes.isEmpty()) {
                                     EmptyComponent(text = stringResource(R.string.gallery_empty_hint))
@@ -483,7 +486,7 @@ fun GalleryItem(noteBean: NoteShowBean, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column {
-            val firstImage = noteBean.note.attachments.firstOrNull()
+            val firstImage = noteBean.note.attachments.firstOrNull { it.type == Attachment.Type.IMAGE }
             if (firstImage != null) {
                 AsyncImage(
                     model = File(firstImage.path),

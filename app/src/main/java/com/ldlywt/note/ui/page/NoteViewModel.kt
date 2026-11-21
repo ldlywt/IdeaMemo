@@ -97,7 +97,9 @@ class NoteViewModel @Inject constructor(private val tagNoteRepo: TagNoteRepo) : 
             
             // 如果当天还没记录图片，且当前笔记有图片，记录第一张
             if (!imageMap.containsKey(localDate)) {
-                val firstImage = noteShow.note.attachments.firstOrNull { it.path.isNotBlank() }
+                val firstImage = noteShow.note.attachments.firstOrNull {
+                    it.type == Attachment.Type.IMAGE && it.path.isNotBlank()
+                }
                 if (firstImage != null) {
                     imageMap[localDate] = firstImage.path
                 }
