@@ -176,6 +176,9 @@
     <string name="stats_recent_7_days">Recent 7 Days Activity</string>
     <string name="nav_home">Home</string>
     <string name="nav_calendar">Calendar</string>
+    <string name="calendar_today">Today</string>
+    <string name="calendar_empty_day">No notes on this day</string>
+    <string name="calendar_note_count">%1$d notes</string>
     <string name="nav_tag">Tag</string>
     <string name="nav_settings">Settings</string>
     <string name="save_image">Save Image</string>

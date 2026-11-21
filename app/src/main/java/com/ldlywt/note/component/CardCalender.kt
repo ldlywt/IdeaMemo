@@ -39,7 +39,10 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CardCalender(
-    noteShowBean: NoteShowBean, navHostController: NavHostController, modifier: Modifier = Modifier
+    noteShowBean: NoteShowBean,
+    navHostController: NavHostController,
+    modifier: Modifier = Modifier,
+    onNoteDeleted: (NoteShowBean) -> Unit = {},
 ) {
 
     var openBottomSheet by rememberSaveable { mutableStateOf(false) }
@@ -92,14 +95,42 @@ fun CardCalender(
                 Spacer(modifier = Modifier.height(8.dp))
                 CalenderImageCard(note, navHostController)
             }
+
+            // 录音附件：与首页 NoteCard 保持一致，点击即可播放/暂停
+            val audioAttachments = note.attachments.filter { it.type == Attachment.Type.AUDIO }
+            if (audioAttachments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    audioAttachments.forEach { attachment ->
+                        AudioPlayerCard(
+                            attachment = attachment,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
         }
     }
 
-    ActionBottomSheet(navHostController, noteShowBean = noteShowBean, show = openBottomSheet) {
-        openBottomSheet = false
-    }
+    // 日历页长按只保留「复制 / 分享 / 删除」，删除后数据进回收站并从当前列表移除
+    ActionBottomSheet(
+        navHostController = navHostController,
+        noteShowBean = noteShowBean,
+        show = openBottomSheet,
+        onNoteDeleted = { onNoteDeleted(noteShowBean) },
+        actions = CalendarSheetActions,
+        onDismissRequest = {
+            openBottomSheet = false
+        }
+    )
 }
+
+private val CalendarSheetActions = setOf(
+    NoteSheetAction.Copy,
+    NoteSheetAction.Share,
+    NoteSheetAction.Delete,
+)
 
 @Composable
 fun CalenderImageCard(note: Note, navHostController: NavHostController?) {

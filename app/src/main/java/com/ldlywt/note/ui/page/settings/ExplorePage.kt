@@ -1,6 +1,7 @@
 package com.ldlywt.note.ui.page.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.ldlywt.note.R
 import com.ldlywt.note.bean.Note
+import com.ldlywt.note.component.AudioPlayerCard
 import com.ldlywt.note.component.ConfirmDialog
 import com.ldlywt.note.component.DraggableCard
 import com.ldlywt.note.component.EmptyComponent
@@ -238,6 +240,20 @@ fun ExploreMemoContent(
             if (note.attachments.any { it.type == com.ldlywt.note.bean.Attachment.Type.IMAGE }) {
                 Spacer(modifier = Modifier.height(12.dp))
                 ImageCard(note, navHostController)
+            }
+
+            // 录音附件：与首页卡片一致，点击即可播放/暂停
+            val audioAttachments = note.attachments.filter { it.type == com.ldlywt.note.bean.Attachment.Type.AUDIO }
+            if (audioAttachments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    audioAttachments.forEach { attachment ->
+                        AudioPlayerCard(
+                            attachment = attachment,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
         

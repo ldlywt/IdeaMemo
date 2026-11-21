@@ -31,6 +31,19 @@ import com.moriafly.salt.ui.SaltTheme
 import kotlinx.coroutines.launch
 
 
+/**
+ * 长按笔记后底部弹框里可用的操作项。
+ * 允许调用方按页面场景裁剪，例如日历页只需要「复制 / 分享 / 删除」。
+ */
+enum class NoteSheetAction {
+    Comment, Copy, Share, Delete, Export;
+
+    companion object {
+        /** 默认展示全部操作项，保持原有行为。 */
+        val All: Set<NoteSheetAction> = enumValues<NoteSheetAction>().toSet()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionBottomSheet(
@@ -38,6 +51,8 @@ fun ActionBottomSheet(
     noteShowBean: NoteShowBean,
     show: Boolean,
     onCommentClick: ((NoteShowBean) -> Unit)? = null,
+    onNoteDeleted: (() -> Unit)? = null,
+    actions: Set<NoteSheetAction> = NoteSheetAction.All,
     onDismissRequest: () -> Unit
 ) {
 
@@ -67,57 +82,68 @@ fun ActionBottomSheet(
             dragHandle = { SaltDragHandle() }
         ) {
             LazyColumn(Modifier.fillMaxWidth()) {
-                item {
-                    Item(
-                        onClick = {
-                            onCommentClick?.invoke(noteShowBean)
-                            onDismissRequest()
-                        },
-                        text = stringResource(R.string.comment)
-                    )
-                }
-
-                item {
-                    Item(
-                        onClick = {
-                            copy(noteShowBean.note)
-                            onDismissRequest()
-                        },
-                        text = stringResource(R.string.copy)
-                    )
-                }
-
-                item {
-                    Item(
-                        onClick = {
-                            navHostController.navigate(Screen.Share(noteShowBean.note.noteId))
-                            onDismissRequest()
-                        },
-                        text = stringResource(R.string.share)
-                    )
-                }
-
-                item {
-                    Item(
-                        onClick = {
-                            showDeleteConfirm = true
-                            onDismissRequest()
-                        },
-                        text = stringResource(R.string.delete)
-                    )
-                }
-                item {
-                    Item(
-                        onClick = {
-                            scope.launch {
-                                withIO {
-                                    exportMarkDownLauncher.launch(null)
-                                }
+                if (NoteSheetAction.Comment in actions) {
+                    item {
+                        Item(
+                            onClick = {
+                                onCommentClick?.invoke(noteShowBean)
                                 onDismissRequest()
-                            }
-                        },
-                        text = stringResource(R.string.export)
-                    )
+                            },
+                            text = stringResource(R.string.comment)
+                        )
+                    }
+                }
+
+                if (NoteSheetAction.Copy in actions) {
+                    item {
+                        Item(
+                            onClick = {
+                                copy(noteShowBean.note)
+                                onDismissRequest()
+                            },
+                            text = stringResource(R.string.copy)
+                        )
+                    }
+                }
+
+                if (NoteSheetAction.Share in actions) {
+                    item {
+                        Item(
+                            onClick = {
+                                navHostController.navigate(Screen.Share(noteShowBean.note.noteId))
+                                onDismissRequest()
+                            },
+                            text = stringResource(R.string.share)
+                        )
+                    }
+                }
+
+                if (NoteSheetAction.Delete in actions) {
+                    item {
+                        Item(
+                            onClick = {
+                                showDeleteConfirm = true
+                                onDismissRequest()
+                            },
+                            text = stringResource(R.string.delete)
+                        )
+                    }
+                }
+
+                if (NoteSheetAction.Export in actions) {
+                    item {
+                        Item(
+                            onClick = {
+                                scope.launch {
+                                    withIO {
+                                        exportMarkDownLauncher.launch(null)
+                                    }
+                                    onDismissRequest()
+                                }
+                            },
+                            text = stringResource(R.string.export)
+                        )
+                    }
                 }
             }
         }
@@ -131,7 +157,9 @@ fun ActionBottomSheet(
         onConfirmRequest = {
             showDeleteConfirm = false
             scope.launch {
+                // 软删除：标记 is_deleted，数据进入回收站
                 viewModel.deleteNote(noteShowBean.note, noteShowBean.tagList)
+                onNoteDeleted?.invoke()
             }
         }
     )

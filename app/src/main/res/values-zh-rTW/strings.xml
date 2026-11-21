@@ -147,6 +147,9 @@
     <string name="nav_home">筆記</string>
     <string name="nav_tag">標籤</string>
     <string name="nav_calendar">日曆</string>
+    <string name="calendar_today">今天</string>
+    <string name="calendar_empty_day">這一天還沒有筆記</string>
+    <string name="calendar_note_count">%1$d 則筆記</string>
     <string name="nav_settings">設定</string>
     <string name="save_image">儲存圖片</string>
     <string name="save_image_success">已儲存至相簿</string>

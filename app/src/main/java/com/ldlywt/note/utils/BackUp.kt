@@ -3,6 +3,7 @@ package com.ldlywt.note.utils
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.annotation.Keep
@@ -127,13 +128,14 @@ object BackUp {
                 zipOut.write(htmlContent.toByteArray())
                 zipOut.closeEntry()
 
-                // 2. 导出图片附件
+                // 2. 导出图片和录音附件
                 list.forEach { noteShowBean ->
                     val dateDirName = SimpleDateFormat(
                         "yyyy-MM-dd",
                         Locale.ENGLISH
                     ).format(Date(noteShowBean.note.createTime))
-                    noteShowBean.note.attachments.filter { it.type == Attachment.Type.IMAGE }
+                    noteShowBean.note.attachments
+                        .filter { it.type == Attachment.Type.IMAGE || it.type == Attachment.Type.AUDIO }
                         .forEach { attachment ->
                             val file = File(attachment.path)
                             if (file.exists()) {
@@ -196,10 +198,18 @@ object BackUp {
                 ?: ""
             val tagListStr = noteShowBean.tagList.joinToString(" ") { "#${it.tag}" }
             val filesHtml =
-                noteShowBean.note.attachments.filter { it.type == Attachment.Type.IMAGE }
+                noteShowBean.note.attachments
+                    .filter { it.type == Attachment.Type.IMAGE || it.type == Attachment.Type.AUDIO }
                     .joinToString("") { attachment ->
                         val fileName = File(attachment.path).name
-                        "<img src=\"file/$dateDirName/${noteShowBean.note.noteId}/$fileName\" alt=\"memo image\" />"
+                        val src = "file/$dateDirName/${noteShowBean.note.noteId}/$fileName"
+                        when (attachment.type) {
+                            Attachment.Type.IMAGE ->
+                                "<img src=\"$src\" alt=\"memo image\" />"
+                            Attachment.Type.AUDIO ->
+                                "<audio controls preload=\"none\" src=\"$src\"></audio>"
+                            else -> ""
+                        }
                     }
 
             """
@@ -242,6 +252,7 @@ object BackUp {
           .memo .content ul, .memo .content ol { padding-inline-start: 22px; margin: 0; }
           .memo .content li { line-height: 1.8; }
           .memo .files img { max-width: 100%; border: 1px solid #e6e6e6; border-radius: 4px; margin: 6px 0; }
+          .memo .files audio { display: block; width: 100%; margin: 6px 0; }
           .custom-select { position: relative; font-size: 14px; color: #9d9d9d; background: #efefef; border-radius: 3px; border: none; margin-right: 10px; }
           .custom-select select { display: none; }
           .select-selected { background: #efefef; color: #9d9d9d; }
@@ -383,6 +394,21 @@ object BackUp {
         """.trimIndent()
     }
 
+    /**
+     * 还原备份中的录音文件。录音统一放在 Music/recordings 目录，
+     * 与录音功能生成的文件位置保持一致。
+     */
+    private fun copyImportedAudio(context: Context, source: File): File {
+        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: context.filesDir
+        val recordDir = File(baseDir, "recordings").apply { mkdirs() }
+        var destFile = File(recordDir, source.name)
+        if (destFile.exists()) {
+            destFile = File(recordDir, destFile.newName())
+        }
+        source.copyTo(destFile, overwrite = false)
+        return destFile
+    }
+
     @Keep
     suspend fun importFromHtmlZip(context: Context, uri: Uri): Result<Int> =
         withContext(Dispatchers.IO) {
@@ -459,6 +485,23 @@ object BackUp {
                                     Attachment(
                                         path = destFile.absolutePath,
                                         type = Attachment.Type.IMAGE
+                                    )
+                                )
+                            }
+                        }
+
+                        // 还原录音附件
+                        filesElement?.select("audio")?.forEach { audioElement ->
+                            val audioSrc = audioElement.attr("src")
+                            val audioFile = File(htmlFile.parentFile, audioSrc)
+                            if (audioFile.exists()) {
+                                val destFile = copyImportedAudio(context, audioFile)
+                                attachments.add(
+                                    Attachment(
+                                        type = Attachment.Type.AUDIO,
+                                        path = destFile.absolutePath,
+                                        fileName = destFile.name,
+                                        description = destFile.name,
                                     )
                                 )
                             }
